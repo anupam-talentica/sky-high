@@ -1,0 +1,204 @@
+---
+description: Java Spring Boot coding standards and conventions
+globs: backend/**/*.java
+alwaysApply: false
+---
+
+# Backend Java Spring Boot Standards
+
+## File Naming Conventions
+
+### Controllers
+- **Pattern**: `*Controller.java`
+- **Example**: `SeatController.java`, `CheckInController.java`
+- **Location**: `com.skyhigh.controller`
+
+### Services
+- **Interface Pattern**: `*Service.java`
+- **Implementation Pattern**: `*ServiceImpl.java`
+- **Example**: `SeatService.java`, `SeatServiceImpl.java`
+- **Location**: `com.skyhigh.service`
+
+### Repositories
+- **Pattern**: `*Repository.java`
+- **Example**: `SeatRepository.java`, `PassengerRepository.java`
+- **Location**: `com.skyhigh.repository`
+- **Type**: Extend `JpaRepository<Entity, ID>`
+
+### Entities
+- **Pattern**: `*.java` (singular noun)
+- **Example**: `Seat.java`, `Passenger.java`, `CheckIn.java`
+- **Location**: `com.skyhigh.entity`
+
+### DTOs (Data Transfer Objects)
+- **Request Pattern**: `*Request.java` or `*DTO.java`
+- **Response Pattern**: `*Response.java` or `*DTO.java`
+- **Example**: `SeatReservationRequest.java`, `CheckInResponse.java`
+- **Location**: `com.skyhigh.dto`
+
+### Exceptions
+- **Pattern**: `*Exception.java`
+- **Example**: `SeatConflictException.java`, `PaymentFailedException.java`
+- **Location**: `com.skyhigh.exception`
+
+### Configuration Classes
+- **Pattern**: `*Config.java`
+- **Example**: `SecurityConfig.java`, `DatabaseConfig.java`
+- **Location**: `com.skyhigh.config`
+
+## Spring Boot Best Practices
+
+### Dependency Injection
+```java
+// ✅ GOOD - Constructor injection
+@Service
+public class SeatServiceImpl implements SeatService {
+    private final SeatRepository seatRepository;
+    
+    public SeatServiceImpl(SeatRepository seatRepository) {
+        this.seatRepository = seatRepository;
+    }
+}
+
+// ❌ BAD - Field injection
+@Service
+public class SeatServiceImpl {
+    @Autowired
+    private SeatRepository seatRepository;
+}
+```
+
+### Controller Design
+```java
+// ✅ GOOD
+@RestController
+@RequestMapping("/api/v1/flights")
+public class SeatController {
+    
+    @GetMapping("/{flightId}/seat-map")
+    public ResponseEntity<SeatMapResponse> getSeatMap(@PathVariable String flightId) {
+        // Implementation
+    }
+}
+```
+
+### Exception Handling
+- Use `@ControllerAdvice` for global exception handling
+- Return proper HTTP status codes (see api-conventions.mdc)
+- Include error details in response body
+
+### Transaction Management
+```java
+// ✅ GOOD - Use @Transactional for operations modifying data
+@Service
+public class CheckInServiceImpl {
+    
+    @Transactional
+    public CheckIn confirmCheckIn(String checkInId) {
+        // Multiple database operations
+    }
+}
+```
+
+## Concurrency Control
+
+**Reference**: See PRD.md Section 5.3 for conflict-free seat assignment requirements
+
+- Use optimistic locking with `@Version` annotation on entities
+- Implement proper exception handling for concurrent modifications
+- Follow database patterns defined in database-patterns.mdc
+
+## Logging Standards
+
+```java
+// ✅ GOOD - Use SLF4J
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+@Service
+public class SeatServiceImpl {
+    private static final Logger logger = LoggerFactory.getLogger(SeatServiceImpl.class);
+    
+    public void reserveSeat(String seatId) {
+        logger.info("Reserving seat: {}", seatId);
+        // Implementation
+    }
+}
+```
+
+**Log Levels**:
+- `DEBUG`: Detailed diagnostic information
+- `INFO`: Important business events
+- `WARN`: Potentially harmful situations
+- `ERROR`: Error events that might still allow the application to continue
+
+## Testing Standards
+
+### Test File Naming
+- **Unit Tests**: `*Test.java`
+- **Integration Tests**: `*IntegrationTest.java`
+- **Example**: `SeatServiceTest.java`, `SeatControllerIntegrationTest.java`
+
+### Test Structure
+```java
+// ✅ GOOD - Clear test naming
+@Test
+public void reserveSeat_WhenSeatAvailable_ShouldReturnReservation() {
+    // Arrange
+    // Act
+    // Assert
+}
+
+@Test
+public void reserveSeat_WhenSeatAlreadyHeld_ShouldThrowConflictException() {
+    // Test implementation
+}
+```
+
+### Coverage Requirements
+- **Minimum Coverage**: 80%
+- **Focus Areas**: Services, controllers, repositories
+- **Tools**: JaCoCo for coverage reporting
+
+### Test Annotations
+- `@SpringBootTest` for integration tests
+- `@WebMvcTest` for controller tests
+- `@DataJpaTest` for repository tests
+- `@MockBean` for mocking dependencies
+
+## Security Patterns
+
+**Reference**: See PRD.md Section 11 for security requirements
+
+### Authentication
+- Implement JWT-based authentication
+- Use Spring Security for endpoint protection
+- Store tokens securely, never in logs
+
+### Authorization
+```java
+// ✅ GOOD - Role-based access control
+@PreAuthorize("hasRole('PASSENGER')")
+@PostMapping("/check-ins/{checkInId}/confirm")
+public ResponseEntity<CheckInResponse> confirmCheckIn() {
+    // Implementation
+}
+```
+
+### Audit Logging
+- Log all state transitions (seat reservations, check-ins)
+- Include user ID, timestamp, and action in audit logs
+- Never log sensitive data (passwords, payment tokens)
+
+### Rate Limiting
+- Implement rate limiting for public endpoints
+- Use Redis for distributed rate limiting
+- Return HTTP 429 when limits exceeded
+
+## Code Quality
+
+- Follow standard Java naming conventions (camelCase for methods/variables, PascalCase for classes)
+- Keep methods focused and under 50 lines
+- Use meaningful variable names
+- Document complex business logic with comments
+- Run linter/formatter before committing

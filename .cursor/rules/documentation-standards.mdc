@@ -1,0 +1,361 @@
+---
+description: Documentation file naming and content standards
+alwaysApply: true
+---
+
+# Documentation Standards
+
+## Required Documentation Files
+
+All documentation files must be placed at the **project root** unless otherwise specified.
+
+### Core Documentation Files
+
+#### 1. PRD.md ✅ (Already exists)
+**Purpose**: Product Requirements Document
+
+**Must Include**:
+- Clear problem statement
+- System goals and success metrics
+- Key users and personas
+- Functional requirements
+- Non-functional requirements (NFRs)
+- API specifications
+- Data models
+- Security and compliance requirements
+
+**Reference**: This file already exists and contains comprehensive requirements.
+
+---
+
+#### 2. README.md
+**Purpose**: Project overview and setup instructions
+
+**Must Include**:
+- Project description and purpose
+- Technology stack
+- Prerequisites (Java version, Node version, Docker, etc.)
+- Database setup instructions
+- How to run the application locally
+- How to run with Docker Compose
+- How to run background workers/scheduled tasks
+- Environment variables configuration
+- Testing instructions
+- Troubleshooting common issues
+
+**Example Structure**:
+```markdown
+# SkyHigh Core - Digital Check-In System
+
+## Overview
+Brief description of the project...
+
+## Technology Stack
+- Backend: Java 17, Spring Boot 3.x
+- Frontend: React 18, TypeScript
+- Database: PostgreSQL 15
+- Cache: Redis 7
+- Deployment: Docker, Kubernetes
+
+## Prerequisites
+- Java 17+
+- Node.js 18+
+- Docker & Docker Compose
+- PostgreSQL 15 (if running locally)
+
+## Setup Instructions
+
+### Database Setup
+1. Create database...
+2. Run migrations...
+
+### Running Locally
+1. Backend: `cd backend && ./mvnw spring-boot:run`
+2. Frontend: `cd frontend && npm install && npm start`
+
+### Running with Docker
+`docker-compose up`
+
+## Testing
+`./mvnw test` (backend)
+`npm test` (frontend)
+```
+
+---
+
+#### 3. PROJECT_STRUCTURE.md
+**Purpose**: Explain project organization
+
+**Must Include**:
+- Folder structure diagram
+- Purpose of each folder
+- Key modules and their responsibilities
+- Package organization (for backend)
+- Component organization (for frontend)
+
+**Example Structure**:
+```markdown
+# Project Structure
+
+## Overview
+```
+Sky-High/
+├── backend/
+├── frontend/
+├── deployment/
+└── [docs]
+```
+
+## Backend Structure
+Explanation of backend folders...
+
+## Frontend Structure
+Explanation of frontend folders...
+
+## Key Modules
+- Seat Management Module: ...
+- Check-In Module: ...
+```
+
+---
+
+#### 4. WORKFLOW_DESIGN.md
+**Purpose**: Implementation workflow and design decisions
+
+**Must Include**:
+- Implementation approach
+- Key workflows (seat reservation, check-in, waitlist)
+- Flow diagrams for primary flows
+- State machine diagrams (seat states, check-in states)
+- Sequence diagrams for complex interactions
+- Design decisions and rationale
+
+**Example Structure**:
+```markdown
+# Workflow Design
+
+## Seat Reservation Flow
+[Diagram]
+Explanation...
+
+## Check-In Flow
+[Diagram]
+Explanation...
+
+## Waitlist Management Flow
+[Diagram]
+Explanation...
+
+## State Machines
+### Seat State Machine
+[Diagram]
+Explanation...
+```
+
+---
+
+#### 5. ARCHITECTURE.md
+**Purpose**: System architecture documentation
+
+**Must Include**:
+- High-level architecture diagram
+- Component descriptions
+- Technology choices and rationale
+- Database schema diagram
+- Relationships between entities
+- State history storage approach
+- Concurrency control strategy
+- Caching strategy
+- External service integrations
+- Scalability considerations
+
+**Example Structure**:
+```markdown
+# Architecture
+
+## High-Level Architecture
+[Diagram showing backend, frontend, database, cache, external services]
+
+## Component Descriptions
+### Backend
+### Frontend
+### Database
+### Cache
+
+## Database Schema
+[ER Diagram]
+Table descriptions...
+
+## Concurrency Control
+Optimistic locking approach...
+
+## Caching Strategy
+Redis for seat maps...
+```
+
+---
+
+#### 6. API Documentation (Choose ONE format)
+
+**Option A: POSTMAN_COLLECTION.json**
+- Export from Postman
+- Include all endpoints
+- Include example requests/responses
+- Include environment variables
+
+**Option B: API-SPECIFICATION.md**
+- Markdown format
+- Document all endpoints
+- Include request/response examples
+- Include error codes
+
+**Option C: API-SPECIFICATION.yml**
+- OpenAPI/Swagger format
+- Complete API specification
+- Can generate interactive documentation
+
+**Choose based on preference, but only ONE file is required.**
+
+---
+
+#### 7. docker-compose.yml
+**Purpose**: Single-command deployment
+
+**Must Include**:
+- All required services (backend, frontend, database, cache)
+- Proper service dependencies
+- Health checks
+- Volume mounts
+- Environment variables
+- Network configuration
+
+**Reference**: See deployment-standards.mdc for complete example.
+
+---
+
+#### 8. CHAT_HISTORY.md
+**Purpose**: AI-assisted design journey
+
+**Must Include**:
+- Summary of design discussions with AI
+- Key decision points
+- Alternatives considered
+- How AI was used to evaluate options
+- Important insights gained
+- Changes made based on AI recommendations
+
+**Example Structure**:
+```markdown
+# Chat History - Design Journey
+
+## Initial Design Discussion
+Date: 2026-02-27
+Topic: Database schema design
+Decision: Chose optimistic locking over pessimistic
+Rationale: ...
+AI Contribution: Suggested version field pattern...
+
+## Concurrency Control Strategy
+Date: 2026-02-28
+Topic: Handling seat conflicts
+Alternatives Considered:
+1. Pessimistic locking
+2. Optimistic locking
+3. Distributed locks with Redis
+Decision: Optimistic locking with @Version
+AI Contribution: Analyzed trade-offs...
+
+## [Continue for major decisions]
+```
+
+---
+
+### Additional Documentation
+
+#### 9. Database Schema
+Can be included in ARCHITECTURE.md or as separate file
+
+**Must Include**:
+- ER diagram or schema diagram
+- Table descriptions
+- Column descriptions
+- Relationships and foreign keys
+- Indexes
+- Constraints
+- State history tracking approach
+
+---
+
+#### 10. Unit Tests & Coverage Report
+
+**Test Files**:
+- Co-located with source code
+- Follow naming conventions (see backend-java-standards.mdc and frontend-react-standards.mdc)
+
+**Coverage Report**:
+- Generate with JaCoCo (backend) and Jest (frontend)
+- Minimum 80% coverage required
+- Include in CI/CD pipeline
+- Can be in `coverage/` folder or linked in README.md
+
+---
+
+## Documentation Checklist
+
+Use this checklist to track documentation completion:
+
+- [ ] PRD.md (already exists)
+- [ ] README.md
+- [ ] PROJECT_STRUCTURE.md
+- [ ] WORKFLOW_DESIGN.md
+- [ ] ARCHITECTURE.md
+- [ ] API Documentation (choose one):
+  - [ ] POSTMAN_COLLECTION.json
+  - [ ] API-SPECIFICATION.md
+  - [ ] API-SPECIFICATION.yml
+- [ ] docker-compose.yml
+- [ ] CHAT_HISTORY.md
+- [ ] Database schema (in ARCHITECTURE.md or separate)
+- [ ] Flow diagrams (in WORKFLOW_DESIGN.md)
+- [ ] Unit tests with 80%+ coverage
+
+---
+
+## Documentation Best Practices
+
+### Writing Style
+- Use clear, concise language
+- Include diagrams for complex concepts
+- Provide code examples where relevant
+- Keep documentation up-to-date with code changes
+
+### Diagrams
+- Use tools like Mermaid, PlantUML, or draw.io
+- Include diagrams in markdown files or as images
+- Ensure diagrams are readable and well-labeled
+
+### Code Examples
+- Include realistic examples
+- Show both good and bad patterns
+- Explain why certain approaches are preferred
+
+### Maintenance
+- Update documentation when code changes
+- Review documentation during code reviews
+- Keep README.md instructions tested and working
+
+---
+
+## File Naming Rules Summary
+
+**MUST USE EXACT NAMES**:
+- `PRD.md` (not prd.md or ProductRequirements.md)
+- `README.md` (not readme.md or ReadMe.md)
+- `PROJECT_STRUCTURE.md` (not project-structure.md)
+- `WORKFLOW_DESIGN.md` (not workflow-design.md)
+- `ARCHITECTURE.md` (not architecture.md)
+- `CHAT_HISTORY.md` (not chat-history.md)
+- `docker-compose.yml` (not docker-compose.yaml or dockercompose.yml)
+- `POSTMAN_COLLECTION.json` OR `API-SPECIFICATION.md` OR `API-SPECIFICATION.yml`
+
+**Case Sensitivity**: Use exact capitalization as specified above.

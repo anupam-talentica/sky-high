@@ -1,0 +1,377 @@
+---
+description: Database schema and JPA patterns
+alwaysApply: true
+---
+
+# Database Patterns
+
+**Reference**: See PRD.md Section 10 for complete data models and schema
+
+## Entity Naming Conventions
+
+### Table Names
+- Use snake_case: `seats`, `check_ins`, `passengers`, `waitlist`
+- Use plural form for tables
+- Match entity class names (singular) to table names (plural)
+
+### Column Names
+- Use snake_case: `seat_number`, `held_until`, `created_at`
+- Use descriptive names
+- Avoid abbreviations unless standard (id, fk)
+
+## JPA Entity Patterns
+
+### Basic Entity Structure
+```java
+// ✅ GOOD - Proper entity structure
+@Entity
+@Table(name = "seats")
+public class Seat {
+    
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "seat_id")
+    private Long seatId;
+    
+    @Column(name = "flight_id", nullable = false)
+    private String flightId;
+    
+    @Column(name = "seat_number", nullable = false, length = 5)
+    private String seatNumber;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "state", nullable = false)
+    private SeatState state;
+    
+    @Version
+    @Column(name = "version")
+    private Integer version;
+    
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+    
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+    
+    // Getters, setters, constructors
+}
+```
+
+### Enum Types
+```java
+// ✅ GOOD - Use enums for fixed states
+public enum SeatState {
+    AVAILABLE,
+    HELD,
+    CONFIRMED,
+    CANCELLED
+}
+
+// In entity:
+@Enumerated(EnumType.STRING)
+private SeatState state;
+```
+
+## Optimistic Locking
+
+**Reference**: See PRD.md Section 5.3 for concurrency control requirements
+
+### Version Field
+```java
+// ✅ GOOD - Add version field for optimistic locking
+@Entity
+public class Seat {
+    
+    @Version
+    @Column(name = "version")
+    private Integer version;
+    
+    // Other fields...
+}
+```
+
+### Handling Concurrent Updates
+```java
+// ✅ GOOD - Handle OptimisticLockException
+@Service
+public class SeatServiceImpl {
+    
+    @Transactional
+    public Seat reserveSeat(String seatId) {
+        try {
+            Seat seat = seatRepository.findById(seatId)
+                .orElseThrow(() -> new SeatNotFoundException());
+            
+            if (seat.getState() != SeatState.AVAILABLE) {
+                throw new SeatConflictException("Seat not available");
+            }
+            
+            seat.setState(SeatState.HELD);
+            seat.setHeldUntil(LocalDateTime.now().plusSeconds(120));
+            
+            return seatRepository.save(seat);
+            
+        } catch (OptimisticLockException e) {
+            throw new SeatConflictException("Seat was modified by another transaction");
+        }
+    }
+}
+```
+
+## State Machine Enforcement
+
+**Reference**: See PRD.md Section 5.1 for seat state machine
+
+### Valid State Transitions
+```
+AVAILABLE → HELD → CONFIRMED → CANCELLED
+     ↑                            ↓
+     └────────────────────────────┘
+```
+
+### Enforce in Code
+```java
+// ✅ GOOD - Validate state transitions
+public void transitionState(SeatState newState) {
+    if (!isValidTransition(this.state, newState)) {
+        throw new InvalidStateTransitionException(
+            String.format("Cannot transition from %s to %s", this.state, newState)
+        );
+    }
+    this.state = newState;
+}
+
+private boolean isValidTransition(SeatState from, SeatState to) {
+    switch (from) {
+        case AVAILABLE:
+            return to == SeatState.HELD;
+        case HELD:
+            return to == SeatState.CONFIRMED || to == SeatState.AVAILABLE;
+        case CONFIRMED:
+            return to == SeatState.CANCELLED;
+        case CANCELLED:
+            return to == SeatState.AVAILABLE;
+        default:
+            return false;
+    }
+}
+```
+
+## Relationships
+
+### Many-to-One
+```java
+// ✅ GOOD - Proper relationship mapping
+@Entity
+@Table(name = "check_ins")
+public class CheckIn {
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "passenger_id", nullable = false)
+    private Passenger passenger;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "flight_id", nullable = false)
+    private Flight flight;
+}
+```
+
+### One-to-Many
+```java
+// ✅ GOOD - Bidirectional relationship
+@Entity
+public class Flight {
+    
+    @OneToMany(mappedBy = "flight", cascade = CascadeType.ALL)
+    private List<Seat> seats;
+}
+```
+
+## Indexing
+
+### Common Indexes
+```java
+// ✅ GOOD - Add indexes for frequently queried columns
+@Entity
+@Table(name = "seats", indexes = {
+    @Index(name = "idx_flight_state", columnList = "flight_id, state"),
+    @Index(name = "idx_held_until", columnList = "held_until")
+})
+public class Seat {
+    // Entity fields
+}
+```
+
+### Unique Constraints
+```java
+// ✅ GOOD - Enforce uniqueness at database level
+@Entity
+@Table(name = "seats", uniqueConstraints = {
+    @UniqueConstraint(name = "unique_flight_seat", columnNames = {"flight_id", "seat_number"})
+})
+public class Seat {
+    // Entity fields
+}
+```
+
+## Query Patterns
+
+### Repository Methods
+```java
+// ✅ GOOD - Descriptive query methods
+public interface SeatRepository extends JpaRepository<Seat, Long> {
+    
+    List<Seat> findByFlightIdAndState(String flightId, SeatState state);
+    
+    Optional<Seat> findByFlightIdAndSeatNumber(String flightId, String seatNumber);
+    
+    @Query("SELECT s FROM Seat s WHERE s.flightId = :flightId AND s.state = 'AVAILABLE'")
+    List<Seat> findAvailableSeats(@Param("flightId") String flightId);
+    
+    @Modifying
+    @Query("UPDATE Seat s SET s.state = 'AVAILABLE' WHERE s.heldUntil < :now AND s.state = 'HELD'")
+    int releaseExpiredSeats(@Param("now") LocalDateTime now);
+}
+```
+
+### Avoid N+1 Queries
+```java
+// ✅ GOOD - Use JOIN FETCH
+@Query("SELECT c FROM CheckIn c JOIN FETCH c.passenger JOIN FETCH c.seat WHERE c.checkInId = :id")
+Optional<CheckIn> findByIdWithDetails(@Param("id") String id);
+
+// ❌ BAD - Lazy loading causes N+1
+CheckIn checkIn = checkInRepository.findById(id);
+String passengerName = checkIn.getPassenger().getName(); // Extra query
+```
+
+## Transactions
+
+### Transaction Boundaries
+```java
+// ✅ GOOD - Transaction at service layer
+@Service
+public class CheckInServiceImpl {
+    
+    @Transactional
+    public CheckIn completeCheckIn(String checkInId) {
+        CheckIn checkIn = checkInRepository.findById(checkInId)
+            .orElseThrow(() -> new CheckInNotFoundException());
+        
+        Seat seat = checkIn.getSeat();
+        seat.setState(SeatState.CONFIRMED);
+        seatRepository.save(seat);
+        
+        checkIn.setStatus(CheckInStatus.COMPLETED);
+        checkIn.setCompletedAt(LocalDateTime.now());
+        
+        return checkInRepository.save(checkIn);
+    }
+}
+```
+
+### Read-Only Transactions
+```java
+// ✅ GOOD - Mark read-only for optimization
+@Transactional(readOnly = true)
+public List<Seat> getAvailableSeats(String flightId) {
+    return seatRepository.findByFlightIdAndState(flightId, SeatState.AVAILABLE);
+}
+```
+
+## Audit Logging
+
+### Audit Fields
+```java
+// ✅ GOOD - Include audit fields
+@Entity
+public class AuditLog {
+    
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long logId;
+    
+    @Column(name = "entity_type", nullable = false)
+    private String entityType;
+    
+    @Column(name = "entity_id", nullable = false)
+    private String entityId;
+    
+    @Column(name = "action", nullable = false)
+    private String action;
+    
+    @Column(name = "old_state", columnDefinition = "json")
+    private String oldState;
+    
+    @Column(name = "new_state", columnDefinition = "json")
+    private String newState;
+    
+    @Column(name = "user_id")
+    private String userId;
+    
+    @Column(name = "timestamp", nullable = false)
+    private LocalDateTime timestamp;
+}
+```
+
+### Automatic Timestamps
+```java
+// ✅ GOOD - Use JPA lifecycle callbacks
+@Entity
+public class Seat {
+    
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+    
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+    
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+    
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+}
+```
+
+## Database Configuration
+
+### Connection Pooling
+```yaml
+# application.yml
+spring:
+  datasource:
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+```
+
+### JPA Settings
+```yaml
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate  # Use 'validate' in production
+    show-sql: false       # Set to true only in development
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+```
+
+## Performance Considerations
+
+- Use indexes on frequently queried columns
+- Implement pagination for large result sets
+- Use batch operations for bulk updates
+- Monitor slow queries and optimize
+- Use database-level constraints for data integrity
+- Implement caching for read-heavy operations (see Redis patterns)

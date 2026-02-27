@@ -1,0 +1,276 @@
+---
+description: REST API design conventions and standards
+globs: "{backend/**/controller/**/*.java,frontend/**/services/**/*.ts}"
+alwaysApply: false
+---
+
+# API Conventions
+
+**Reference**: See PRD.md Section 9 for complete API specifications
+
+## Base URL Structure
+
+```
+Production: https://api.skyhigh.com/v1
+Staging: https://api-staging.skyhigh.com/v1
+Development: http://localhost:8080/api/v1
+```
+
+**Pattern**: `/api/v{version}/{resource}`
+
+## HTTP Status Codes
+
+### Success Codes
+- **200 OK**: Successful GET, PUT, PATCH, or DELETE
+- **201 Created**: Successful POST that creates a resource
+- **204 No Content**: Successful DELETE with no response body
+
+### Client Error Codes
+- **400 Bad Request**: Invalid request data or validation failure
+- **401 Unauthorized**: Missing or invalid authentication token
+- **402 Payment Required**: Payment failed or required
+- **403 Forbidden**: Authenticated but not authorized
+- **404 Not Found**: Resource does not exist
+- **409 Conflict**: Resource conflict (e.g., seat already reserved)
+- **423 Locked**: Resource temporarily locked (e.g., seat being processed)
+- **429 Too Many Requests**: Rate limit exceeded
+
+### Server Error Codes
+- **500 Internal Server Error**: Unexpected server error
+- **502 Bad Gateway**: External service failure
+- **503 Service Unavailable**: Service temporarily unavailable
+- **504 Gateway Timeout**: External service timeout
+
+## Error Response Format
+
+All error responses must follow this structure:
+
+```json
+{
+  "error": {
+    "code": "SEAT_ALREADY_RESERVED",
+    "message": "The selected seat is no longer available",
+    "details": {
+      "seatNumber": "12A",
+      "currentState": "HELD"
+    },
+    "timestamp": "2026-02-27T10:30:00Z",
+    "requestId": "req_abc123"
+  }
+}
+```
+
+### Error Code Examples
+
+| HTTP Status | Error Code | Use Case |
+|-------------|------------|----------|
+| 409 | `SEAT_ALREADY_RESERVED` | Seat conflict during reservation |
+| 409 | `CHECK_IN_ALREADY_COMPLETED` | Duplicate check-in attempt |
+| 423 | `SEAT_TEMPORARILY_LOCKED` | Seat being processed by another request |
+| 429 | `RATE_LIMIT_EXCEEDED` | Too many requests |
+| 402 | `PAYMENT_REQUIRED` | Baggage fee payment needed |
+| 402 | `PAYMENT_FAILED` | Payment processing failed |
+| 400 | `INVALID_BAGGAGE_WEIGHT` | Invalid weight data |
+| 404 | `FLIGHT_NOT_FOUND` | Flight does not exist |
+| 404 | `SEAT_NOT_FOUND` | Seat does not exist |
+
+## Request/Response Patterns
+
+### Authentication Header
+```
+Authorization: Bearer <jwt_token>
+```
+
+All API requests (except public endpoints) must include JWT token.
+
+### Request Body Format
+```json
+{
+  "passengerId": "P123456",
+  "seatNumber": "12A"
+}
+```
+
+- Use camelCase for JSON keys
+- Include only necessary fields
+- Validate all inputs before processing
+
+### Response Body Format
+```json
+{
+  "reservationId": "R789012",
+  "seatNumber": "12A",
+  "state": "HELD",
+  "expiresAt": "2026-02-27T10:32:00Z",
+  "remainingSeconds": 120
+}
+```
+
+- Use camelCase for JSON keys
+- Include timestamps in ISO 8601 format
+- Include relevant metadata (IDs, timestamps, states)
+
+## Endpoint Naming Conventions
+
+### Resource-Based URLs
+```
+✅ GOOD
+GET    /api/v1/flights/{flightId}/seat-map
+POST   /api/v1/flights/{flightId}/seats/{seatNumber}/reserve
+POST   /api/v1/check-ins/{checkInId}/confirm
+DELETE /api/v1/waitlist/{waitlistId}
+
+❌ BAD
+GET    /api/v1/getSeatMap
+POST   /api/v1/reserveSeat
+POST   /api/v1/confirmCheckIn
+```
+
+### Use Nouns, Not Verbs
+- Use HTTP methods to indicate action
+- Resource names should be nouns
+- Use plural for collections
+
+### Nested Resources
+```
+✅ GOOD - Logical nesting
+/api/v1/flights/{flightId}/seat-map
+/api/v1/check-ins/{checkInId}/baggage
+
+❌ BAD - Too deep nesting
+/api/v1/flights/{flightId}/seats/{seatId}/reservations/{reservationId}/confirm
+```
+
+## API Versioning
+
+- Version in URL path: `/api/v1/`
+- Major version only (v1, v2, etc.)
+- Maintain backward compatibility within major version
+- Deprecate old versions with 6-month notice
+
+## Pagination
+
+For endpoints returning large collections:
+
+```
+GET /api/v1/flights?page=1&size=20
+
+Response:
+{
+  "data": [...],
+  "pagination": {
+    "page": 1,
+    "size": 20,
+    "totalPages": 5,
+    "totalElements": 100
+  }
+}
+```
+
+## Query Parameters
+
+```
+GET /api/v1/flights/{flightId}/seat-map?seatType=window&availability=available
+
+Parameters:
+- seatType: Filter by seat type
+- availability: Filter by availability
+- priceRange: Filter by price range
+```
+
+- Use camelCase for parameter names
+- Document all query parameters
+- Provide sensible defaults
+
+## Rate Limiting Headers
+
+Include rate limit information in response headers:
+
+```
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 1614556800
+```
+
+## CORS Headers
+
+For frontend integration:
+
+```
+Access-Control-Allow-Origin: https://skyhigh.com
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Headers: Authorization, Content-Type
+```
+
+## Idempotency
+
+- GET, PUT, DELETE are naturally idempotent
+- POST operations should use idempotency keys for critical operations:
+
+```
+POST /api/v1/check-ins/{checkInId}/confirm
+Idempotency-Key: unique-key-123
+```
+
+## Backend Implementation (Java)
+
+```java
+// ✅ GOOD - Proper status codes and error handling
+@RestController
+@RequestMapping("/api/v1/flights")
+public class SeatController {
+    
+    @GetMapping("/{flightId}/seat-map")
+    public ResponseEntity<SeatMapResponse> getSeatMap(@PathVariable String flightId) {
+        SeatMapResponse seatMap = seatService.getSeatMap(flightId);
+        return ResponseEntity.ok(seatMap);
+    }
+    
+    @PostMapping("/{flightId}/seats/{seatNumber}/reserve")
+    public ResponseEntity<ReservationResponse> reserveSeat(
+            @PathVariable String flightId,
+            @PathVariable String seatNumber,
+            @RequestBody ReservationRequest request) {
+        try {
+            ReservationResponse response = seatService.reserve(flightId, seatNumber, request);
+            return ResponseEntity.ok(response);
+        } catch (SeatConflictException e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
+        }
+    }
+}
+```
+
+## Frontend Implementation (TypeScript)
+
+```typescript
+// ✅ GOOD - Proper error handling
+export const seatService = {
+  async reserveSeat(flightId: string, seatNumber: string): Promise<ReservationResponse> {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/flights/${flightId}/seats/${seatNumber}/reserve`,
+        { passengerId: getCurrentPassengerId() },
+        { headers: { Authorization: `Bearer ${getToken()}` } }
+      );
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 409) {
+          throw new Error('Seat already reserved');
+        } else if (error.response?.status === 423) {
+          throw new Error('Seat temporarily unavailable');
+        }
+      }
+      throw new Error('Failed to reserve seat');
+    }
+  }
+};
+```
+
+## Documentation
+
+- Document all endpoints in API-SPECIFICATION.yml or POSTMAN_COLLECTION.json
+- Include request/response examples
+- Document all error codes
+- Keep documentation in sync with implementation

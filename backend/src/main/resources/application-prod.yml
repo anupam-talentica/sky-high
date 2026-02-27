@@ -1,0 +1,23 @@
+spring:
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+logging:
+  level:
+    root: WARN
+    com.skyhigh: INFO
+    org.springframework.web: WARN
+    org.hibernate.SQL: WARN
+
+server:
+  port: 8080
+
+management:
+  metrics:
+    export:
+      cloudwatch:
+        enabled: true
+        namespace: SkyHighCore

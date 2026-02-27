@@ -1,0 +1,102 @@
+---
+description: Project structure and organization standards
+alwaysApply: true
+---
+
+# Project Structure Standards
+
+## Folder Organization
+
+The project follows a three-tier structure:
+
+```
+Sky-High/
+├── backend/           # Java Spring Boot application
+├── frontend/          # React TypeScript application
+├── deployment/        # Docker and Kubernetes configurations
+└── [documentation]    # Root-level documentation files
+```
+
+## Backend Structure
+
+Follow standard Spring Boot Maven/Gradle project structure:
+
+```
+backend/
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   │   └── com/
+│   │   │       └── skyhigh/
+│   │   │           ├── controller/
+│   │   │           ├── service/
+│   │   │           ├── repository/
+│   │   │           ├── entity/
+│   │   │           ├── dto/
+│   │   │           ├── config/
+│   │   │           ├── exception/
+│   │   │           └── util/
+│   │   └── resources/
+│   │       ├── application.yml
+│   │       ├── application-dev.yml
+│   │       └── application-prod.yml
+│   └── test/
+│       └── java/
+│           └── com/
+│               └── skyhigh/
+├── pom.xml (or build.gradle)
+└── Dockerfile
+```
+
+**Package Naming Convention**: All Java packages must start with `com.skyhigh.*`
+
+## Frontend Structure
+
+Follow standard React project structure:
+
+```
+frontend/
+├── src/
+│   ├── components/      # React components
+│   ├── services/        # API client services
+│   ├── hooks/           # Custom React hooks
+│   ├── utils/           # Utility functions
+│   ├── types/           # TypeScript type definitions
+│   ├── contexts/        # React contexts
+│   ├── pages/           # Page-level components
+│   ├── assets/          # Static assets
+│   └── App.tsx
+├── public/
+├── package.json
+└── Dockerfile
+```
+
+## Deployment Structure
+
+```
+deployment/
+├── docker/
+│   ├── backend.Dockerfile
+│   └── frontend.Dockerfile
+├── kubernetes/
+│   ├── backend-deployment.yml
+│   ├── frontend-deployment.yml
+│   ├── postgres-deployment.yml
+│   └── redis-deployment.yml
+└── scripts/
+    ├── setup.sh
+    └── deploy.sh
+```
+
+## Module Separation
+
+- **Backend**: Handles all business logic, database operations, and external service integrations
+- **Frontend**: Handles UI/UX, user interactions, and API consumption
+- **Deployment**: Contains infrastructure as code and orchestration configs
+
+## Key Principles
+
+1. **Separation of Concerns**: Keep backend, frontend, and deployment concerns isolated
+2. **Standard Conventions**: Follow Spring Boot and React community standards
+3. **Package Organization**: Use `com.skyhigh.*` for all Java packages
+4. **Clear Boundaries**: Each module should be independently buildable and testable

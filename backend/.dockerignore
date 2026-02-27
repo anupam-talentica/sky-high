@@ -1,0 +1,13 @@
+target/
+.mvn/
+.git/
+.gitignore
+*.md
+.env
+.env.*
+logs/
+*.log
+.idea/
+*.iml
+.vscode/
+.DS_Store

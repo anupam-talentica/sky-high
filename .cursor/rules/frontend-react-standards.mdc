@@ -1,0 +1,270 @@
+---
+description: React TypeScript coding standards and conventions
+globs: frontend/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Frontend React TypeScript Standards
+
+## File Naming Conventions
+
+### Components
+- **Pattern**: `PascalCase.tsx`
+- **Example**: `SeatMap.tsx`, `CheckInForm.tsx`, `PassengerDetails.tsx`
+- **Location**: `frontend/src/components/`
+
+### Services (API Clients)
+- **Pattern**: `camelCase.service.ts`
+- **Example**: `checkin.service.ts`, `seat.service.ts`, `payment.service.ts`
+- **Location**: `frontend/src/services/`
+
+### Custom Hooks
+- **Pattern**: `use*.ts` or `use*.tsx`
+- **Example**: `useSeatSelection.ts`, `useCheckIn.ts`, `useTimer.ts`
+- **Location**: `frontend/src/hooks/`
+
+### Utility Functions
+- **Pattern**: `camelCase.util.ts`
+- **Example**: `date.util.ts`, `validation.util.ts`, `format.util.ts`
+- **Location**: `frontend/src/utils/`
+
+### Type Definitions
+- **Pattern**: `*.types.ts` or `*.interface.ts`
+- **Example**: `seat.types.ts`, `checkin.types.ts`, `api.types.ts`
+- **Location**: `frontend/src/types/`
+
+### Contexts
+- **Pattern**: `*Context.tsx`
+- **Example**: `AuthContext.tsx`, `CheckInContext.tsx`
+- **Location**: `frontend/src/contexts/`
+
+### Pages
+- **Pattern**: `PascalCase.tsx`
+- **Example**: `CheckInPage.tsx`, `SeatSelectionPage.tsx`
+- **Location**: `frontend/src/pages/`
+
+## React Patterns
+
+### Functional Components
+```typescript
+// ✅ GOOD - Functional component with TypeScript
+interface SeatMapProps {
+  flightId: string;
+  onSeatSelect: (seatNumber: string) => void;
+}
+
+export const SeatMap: React.FC<SeatMapProps> = ({ flightId, onSeatSelect }) => {
+  // Implementation
+  return <div>...</div>;
+};
+
+// ❌ BAD - Class components (avoid unless necessary)
+class SeatMap extends React.Component {
+  // Avoid
+}
+```
+
+### Custom Hooks
+```typescript
+// ✅ GOOD - Extract reusable logic into hooks
+export const useSeatSelection = (flightId: string) => {
+  const [selectedSeat, setSelectedSeat] = useState<string | null>(null);
+  const [timer, setTimer] = useState<number>(120);
+  
+  // Hook logic
+  
+  return { selectedSeat, timer, selectSeat };
+};
+```
+
+### State Management
+- Use `useState` for local component state
+- Use `useContext` for shared state across components
+- Consider Redux/Zustand for complex global state
+- Keep state as close to where it's used as possible
+
+### Error Handling
+```typescript
+// ✅ GOOD - Handle errors gracefully
+const reserveSeat = async (seatNumber: string) => {
+  try {
+    const response = await seatService.reserve(flightId, seatNumber);
+    setReservation(response);
+  } catch (error) {
+    if (error.status === 409) {
+      showError('Seat already reserved');
+    } else {
+      showError('An error occurred. Please try again.');
+    }
+  }
+};
+```
+
+## API Service Pattern
+
+```typescript
+// ✅ GOOD - Centralized API service
+// frontend/src/services/checkin.service.ts
+
+import axios from 'axios';
+import { CheckInResponse, CheckInRequest } from '../types/checkin.types';
+
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api/v1';
+
+export const checkinService = {
+  async confirmCheckIn(checkInId: string): Promise<CheckInResponse> {
+    const response = await axios.post(`${API_BASE_URL}/check-ins/${checkInId}/confirm`, {
+      headers: {
+        'Authorization': `Bearer ${getToken()}`
+      }
+    });
+    return response.data;
+  },
+  
+  // Other methods...
+};
+```
+
+## TypeScript Best Practices
+
+### Type Definitions
+```typescript
+// ✅ GOOD - Define clear interfaces
+interface Seat {
+  seatNumber: string;
+  seatType: 'window' | 'aisle' | 'middle';
+  state: 'AVAILABLE' | 'HELD' | 'CONFIRMED';
+  price: number;
+  amenities: string[];
+}
+
+// ✅ GOOD - Use enums for constants
+enum SeatState {
+  AVAILABLE = 'AVAILABLE',
+  HELD = 'HELD',
+  CONFIRMED = 'CONFIRMED',
+  CANCELLED = 'CANCELLED'
+}
+```
+
+### Avoid `any` Type
+```typescript
+// ❌ BAD
+const handleResponse = (data: any) => {
+  // Avoid any
+};
+
+// ✅ GOOD
+const handleResponse = (data: CheckInResponse) => {
+  // Type-safe
+};
+```
+
+## Testing Standards
+
+### Test File Naming
+- **Unit Tests**: `*.test.tsx` or `*.test.ts`
+- **Example**: `SeatMap.test.tsx`, `checkin.service.test.ts`
+- **Location**: Co-located with source files or in `__tests__` folder
+
+### Test Structure
+```typescript
+// ✅ GOOD - Clear test structure
+import { render, screen, fireEvent } from '@testing-library/react';
+import { SeatMap } from './SeatMap';
+
+describe('SeatMap', () => {
+  it('should display available seats', () => {
+    // Arrange
+    const mockSeats = [/* mock data */];
+    
+    // Act
+    render(<SeatMap seats={mockSeats} />);
+    
+    // Assert
+    expect(screen.getByText('12A')).toBeInTheDocument();
+  });
+  
+  it('should call onSeatSelect when seat is clicked', () => {
+    // Test implementation
+  });
+});
+```
+
+### Testing Tools
+- **Framework**: Jest
+- **React Testing**: React Testing Library
+- **Coverage**: 80% minimum
+- **Mocking**: Mock API calls and external dependencies
+
+### Coverage Requirements
+- **Minimum Coverage**: 80%
+- **Focus Areas**: Components, services, hooks, utilities
+- **Tools**: Jest coverage reports
+
+## Security Patterns
+
+**Reference**: See PRD.md Section 11 for security requirements
+
+### Token Management
+```typescript
+// ✅ GOOD - Secure token storage
+const getToken = (): string | null => {
+  return sessionStorage.getItem('auth_token');
+};
+
+const setToken = (token: string): void => {
+  sessionStorage.setItem('auth_token', token);
+};
+
+// Never log tokens
+console.log('Token:', token); // ❌ BAD
+```
+
+### API Request Headers
+```typescript
+// ✅ GOOD - Include auth headers
+axios.interceptors.request.use((config) => {
+  const token = getToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+```
+
+### Input Validation
+- Validate all user inputs before sending to API
+- Sanitize data to prevent XSS attacks
+- Use TypeScript types for compile-time validation
+
+## Performance Optimization
+
+### Memoization
+```typescript
+// ✅ GOOD - Memoize expensive computations
+const SeatMap: React.FC<Props> = ({ seats }) => {
+  const availableSeats = useMemo(
+    () => seats.filter(seat => seat.state === 'AVAILABLE'),
+    [seats]
+  );
+  
+  return <div>...</div>;
+};
+```
+
+### Lazy Loading
+```typescript
+// ✅ GOOD - Lazy load routes
+const CheckInPage = lazy(() => import('./pages/CheckInPage'));
+const SeatSelectionPage = lazy(() => import('./pages/SeatSelectionPage'));
+```
+
+## Code Quality
+
+- Use ESLint and Prettier for code formatting
+- Follow Airbnb React/TypeScript style guide
+- Keep components under 200 lines
+- Extract complex logic into custom hooks
+- Use meaningful variable and function names
+- Document complex UI logic with comments

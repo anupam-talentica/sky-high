@@ -1,0 +1,422 @@
+---
+description: Docker and Kubernetes deployment standards
+globs: "deployment/**/*.{yml,yaml,sh,Dockerfile}"
+alwaysApply: false
+---
+
+# Deployment Standards
+
+**Reference**: See PRD.md Section 7 for architecture overview
+
+## Docker Best Practices
+
+### Dockerfile Naming
+- **Backend**: `backend/Dockerfile` or `deployment/docker/backend.Dockerfile`
+- **Frontend**: `frontend/Dockerfile` or `deployment/docker/frontend.Dockerfile`
+
+### Multi-Stage Builds
+```dockerfile
+# ✅ GOOD - Multi-stage build for Java Spring Boot
+FROM maven:3.8-openjdk-17 AS build
+WORKDIR /app
+COPY pom.xml .
+COPY src ./src
+RUN mvn clean package -DskipTests
+
+FROM openjdk:17-jdk-slim
+WORKDIR /app
+COPY --from=build /app/target/*.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]
+```
+
+```dockerfile
+# ✅ GOOD - Multi-stage build for React
+FROM node:18-alpine AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+FROM nginx:alpine
+COPY --from=build /app/build /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/nginx.conf
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+### Best Practices
+- Use specific version tags (not `latest`)
+- Minimize layers by combining RUN commands
+- Use `.dockerignore` to exclude unnecessary files
+- Run as non-root user when possible
+- Keep images small (use alpine variants)
+
+## Docker Compose
+
+### File Naming
+- **Required**: `docker-compose.yml` (at project root)
+
+### Structure
+```yaml
+# ✅ GOOD - Complete docker-compose.yml
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: skyhigh-postgres
+    environment:
+      POSTGRES_DB: skyhigh
+      POSTGRES_USER: skyhigh_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/src/main/resources/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U skyhigh_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: skyhigh-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: skyhigh-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/skyhigh
+      SPRING_DATASOURCE_USERNAME: skyhigh_user
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: skyhigh-frontend
+    environment:
+      REACT_APP_API_URL: http://localhost:8080/api/v1
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+
+networks:
+  default:
+    name: skyhigh-network
+```
+
+### Key Requirements
+- Include health checks for all services
+- Use environment variables for configuration
+- Define service dependencies with `depends_on`
+- Use named volumes for data persistence
+- Include all required services (backend, frontend, database, cache)
+
+## Kubernetes Manifests
+
+### File Naming
+- **Pattern**: `{service}-{resource-type}.yml`
+- **Examples**: 
+  - `backend-deployment.yml`
+  - `frontend-service.yml`
+  - `postgres-statefulset.yml`
+  - `redis-deployment.yml`
+
+### Deployment Structure
+```yaml
+# ✅ GOOD - Kubernetes deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: skyhigh-backend
+  labels:
+    app: skyhigh-backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: skyhigh-backend
+  template:
+    metadata:
+      labels:
+        app: skyhigh-backend
+    spec:
+      containers:
+      - name: backend
+        image: skyhigh/backend:1.0.0
+        ports:
+        - containerPort: 8080
+        env:
+        - name: SPRING_DATASOURCE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: backend-config
+              key: database.url
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: backend-secrets
+              key: database.password
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 5
+```
+
+### Service Structure
+```yaml
+# ✅ GOOD - Kubernetes service
+apiVersion: v1
+kind: Service
+metadata:
+  name: skyhigh-backend
+spec:
+  selector:
+    app: skyhigh-backend
+  ports:
+  - protocol: TCP
+    port: 8080
+    targetPort: 8080
+  type: ClusterIP
+```
+
+### ConfigMap and Secrets
+```yaml
+# ✅ GOOD - ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+data:
+  database.url: "jdbc:postgresql://postgres:5432/skyhigh"
+  redis.host: "redis"
+  redis.port: "6379"
+
+---
+# ✅ GOOD - Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: backend-secrets
+type: Opaque
+data:
+  database.password: <base64-encoded-password>
+  jwt.secret: <base64-encoded-secret>
+```
+
+## Environment Variables
+
+### Naming Convention
+- Use UPPERCASE_SNAKE_CASE
+- Prefix with service name if needed
+- Group related variables
+
+### Common Variables
+```bash
+# Database
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=skyhigh
+DB_USER=skyhigh_user
+DB_PASSWORD=secret
+
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# Application
+APP_PORT=8080
+APP_ENV=development
+JWT_SECRET=secret
+JWT_EXPIRATION=3600
+
+# External Services
+WEIGHT_SERVICE_URL=http://weight-service:8081
+PAYMENT_SERVICE_URL=http://payment-service:8082
+NOTIFICATION_SERVICE_URL=http://notification-service:8083
+```
+
+## Health Checks
+
+### Backend Health Endpoint
+```java
+// ✅ GOOD - Spring Boot Actuator
+// application.yml
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+```
+
+### Frontend Health Check
+```nginx
+# ✅ GOOD - Nginx health endpoint
+location /health {
+    access_log off;
+    return 200 "healthy\n";
+    add_header Content-Type text/plain;
+}
+```
+
+## Deployment Scripts
+
+### Script Naming
+- **Pattern**: `{action}.sh`
+- **Examples**: `setup.sh`, `deploy.sh`, `teardown.sh`
+
+### Script Structure
+```bash
+#!/bin/bash
+# ✅ GOOD - Deployment script
+
+set -e  # Exit on error
+
+echo "Starting SkyHigh deployment..."
+
+# Build images
+docker-compose build
+
+# Start services
+docker-compose up -d
+
+# Wait for services to be healthy
+echo "Waiting for services to be ready..."
+sleep 30
+
+# Run database migrations (if needed)
+docker-compose exec backend ./mvnw flyway:migrate
+
+# Verify deployment
+docker-compose ps
+
+echo "Deployment complete!"
+```
+
+## CI/CD Considerations
+
+### Build Pipeline
+1. Run tests
+2. Build Docker images
+3. Push to registry
+4. Deploy to staging
+5. Run integration tests
+6. Deploy to production (manual approval)
+
+### Rollback Strategy
+- Use blue-green or canary deployments
+- Tag images with version numbers
+- Keep previous version available for quick rollback
+
+## Resource Limits
+
+### Recommended Limits
+```yaml
+# Backend
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "500m"
+  limits:
+    memory: "1Gi"
+    cpu: "1000m"
+
+# Frontend
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "100m"
+  limits:
+    memory: "256Mi"
+    cpu: "200m"
+
+# PostgreSQL
+resources:
+  requests:
+    memory: "1Gi"
+    cpu: "500m"
+  limits:
+    memory: "2Gi"
+    cpu: "1000m"
+
+# Redis
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "250m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+```
+
+## Logging and Monitoring
+
+### Structured Logging
+- Log to stdout/stderr (Docker captures logs)
+- Use JSON format for structured logs
+- Include correlation IDs for request tracing
+
+### Monitoring
+- Expose metrics endpoint (Prometheus format)
+- Include health checks in all services
+- Monitor resource usage (CPU, memory, disk)
+
+## Security
+
+- Never commit secrets to version control
+- Use Kubernetes secrets or external secret management
+- Run containers as non-root user
+- Scan images for vulnerabilities
+- Use network policies to restrict traffic
