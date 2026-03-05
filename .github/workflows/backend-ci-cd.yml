@@ -35,9 +35,9 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Run tests with Maven
+      - name: Run tests with Maven (with coverage checks)
         working-directory: ./backend
-        run: mvn clean test
+        run: mvn clean verify
 
       - name: Generate test coverage report
         working-directory: ./backend

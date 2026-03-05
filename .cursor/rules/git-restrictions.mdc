@@ -1,0 +1,65 @@
+---
+description: Restricts Git commands from Copilot chat window
+alwaysApply: true
+---
+
+# Git Command Restrictions
+
+**IMPORTANT**: Git commands are BLOCKED from the Copilot chat window.
+
+## Prohibited Actions
+
+You must NOT execute any Git commands, including but not limited to:
+
+- `git init`
+- `git add`
+- `git commit`
+- `git push`
+- `git pull`
+- `git clone`
+- `git checkout`
+- `git branch`
+- `git merge`
+- `git rebase`
+- `git status`
+- `git log`
+- `git diff`
+- `git stash`
+- `git reset`
+- `git revert`
+- `git tag`
+- `git remote`
+- `git fetch`
+- `git config`
+
+## Rationale
+
+Git operations should be performed manually by the developer through:
+- Terminal/command line
+- IDE's built-in Git integration
+- Git GUI clients
+
+This ensures:
+- Developer maintains full control over version control
+- No accidental commits or pushes
+- Proper review of changes before committing
+- Adherence to team Git workflows
+
+## What to Do Instead
+
+If the user requests Git operations:
+1. **Inform** them that Git commands are restricted from the chat
+2. **Provide** the exact Git command they should run manually
+3. **Explain** what the command does and why it's needed
+
+### Example Response
+
+```
+I cannot execute Git commands directly. Please run the following command in your terminal:
+
+git add .
+git commit -m "Your commit message"
+git push origin main
+
+This will stage all changes, commit them with your message, and push to the main branch.
+```

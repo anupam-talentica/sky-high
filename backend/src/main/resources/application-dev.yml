@@ -1,6 +1,6 @@
 spring:
   jpa:
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
@@ -13,9 +13,9 @@ spring:
 
 logging:
   level:
-    com.skyhigh: DEBUG
-    org.springframework.web: DEBUG
-    org.hibernate.SQL: DEBUG
+    com.skyhigh: INFO
+    org.springframework.web: INFO
+    org.hibernate.SQL: INFO
 
 server:
   port: 8080

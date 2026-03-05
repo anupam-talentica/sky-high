@@ -1,0 +1,1045 @@
+openapi: 3.0.3
+info:
+  title: SkyHigh Core API
+  version: "1.0.0"
+  description: |
+    REST API for SkyHigh Core digital check-in system.
+    Covers authentication, flights, seat management, check-in, baggage, payments, and waitlist.
+
+servers:
+  - url: http://localhost:8080
+    description: Local development
+
+tags:
+  - name: Auth
+  - name: Flights
+  - name: Seats
+  - name: Check-In
+  - name: Baggage
+  - name: Payments
+  - name: Waitlist
+
+paths:
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login and obtain JWT
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/health:
+    get:
+      tags: [Auth]
+      summary: Authentication service health check
+      operationId: authHealth
+      responses:
+        "200":
+          description: Service healthy
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /api/v1/flights:
+    get:
+      tags: [Flights]
+      summary: List all flights
+      operationId: getAllFlights
+      responses:
+        "200":
+          description: Flights retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FlightListResponseDTO'
+
+  /api/v1/flights/{flightId}:
+    get:
+      tags: [Flights]
+      summary: Get flight by ID
+      operationId: getFlightById
+      parameters:
+        - name: flightId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Flight retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FlightDTO'
+        "404":
+          description: Flight not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/flights/search:
+    get:
+      tags: [Flights]
+      summary: Search flights by origin/destination
+      operationId: searchFlights
+      parameters:
+        - name: origin
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: destination
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Matching flights
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FlightListResponseDTO'
+
+  /api/v1/flights/{flightId}/seat-map:
+    get:
+      tags: [Seats]
+      summary: Get seat map for a flight
+      operationId: getSeatMap
+      parameters:
+        - name: flightId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Seat map retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeatMapResponseDTO'
+
+  /api/v1/flights/{flightId}/seat-map/status:
+    get:
+      tags: [Seats]
+      summary: Lightweight seat-map status for abuse/bot detection
+      operationId: getSeatMapStatus
+      parameters:
+        - name: flightId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Request acknowledged
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /api/v1/seats/flight/{flightId}:
+    get:
+      tags: [Seats]
+      summary: Get seats by flight
+      operationId: getSeatsByFlight
+      parameters:
+        - name: flightId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Seats retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeatMapResponseDTO'
+
+  /api/v1/flights/{flightId}/seats/{seatNumber}/reserve:
+    post:
+      tags: [Seats]
+      summary: Reserve a seat by flight and seat number
+      operationId: reserveSeat
+      parameters:
+        - name: flightId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: seatNumber
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SeatReservationRequestDTO'
+      responses:
+        "201":
+          description: Seat reserved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeatReservationResponseDTO'
+        "409":
+          description: Seat conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/seats/flight/{flightId}/seat/{seatNumber}/reserve:
+    post:
+      tags: [Seats]
+      summary: Alternate reserve seat endpoint
+      operationId: reserveSeatAlt
+      parameters:
+        - name: flightId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: seatNumber
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SeatReservationRequestDTO'
+      responses:
+        "201":
+          description: Seat reserved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeatReservationResponseDTO'
+
+  /api/v1/seats/{seatId}/release:
+    post:
+      tags: [Seats]
+      summary: Release a seat by seat ID
+      operationId: releaseSeat
+      parameters:
+        - name: seatId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Seat released
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Seat'
+
+  /api/v1/flights/{flightId}/seats/{seatNumber}/release:
+    post:
+      tags: [Seats]
+      summary: Release a seat by flight ID and seat number
+      operationId: releaseSeatByNumber
+      parameters:
+        - name: flightId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: seatNumber
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Seat released
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Seat'
+
+  /api/v1/seats/{seatId}/confirm:
+    post:
+      tags: [Seats]
+      summary: Confirm held seat
+      operationId: confirmSeat
+      parameters:
+        - name: seatId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: passengerId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Seat confirmed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Seat'
+
+  /api/v1/seats/{seatId}/cancel:
+    post:
+      tags: [Seats]
+      summary: Cancel confirmed seat
+      operationId: cancelSeat
+      parameters:
+        - name: seatId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Seat cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Seat'
+
+  /api/v1/check-ins/initiate:
+    post:
+      tags: [Check-In]
+      summary: Start check-in
+      operationId: startCheckIn
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckInRequestDTO'
+      responses:
+        "201":
+          description: Check-in started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckInResponseDTO'
+
+  /api/v1/check-ins/{checkInId}/select-seat:
+    post:
+      tags: [Check-In, Seats]
+      summary: Select seat within check-in flow
+      operationId: selectSeatForCheckIn
+      parameters:
+        - name: checkInId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SeatReservationRequestDTO'
+      responses:
+        "200":
+          description: Seat selected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckInResponseDTO'
+
+  /api/v1/check-ins/{checkInId}/baggage:
+    post:
+      tags: [Check-In, Baggage]
+      summary: Add baggage to check-in
+      operationId: addBaggage
+      parameters:
+        - name: checkInId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BaggageDetailsDTO'
+      responses:
+        "200":
+          description: Baggage added/updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaggageResponseDTO'
+
+    get:
+      tags: [Check-In, Baggage]
+      summary: Get baggage items for a check-in
+      operationId: getBaggage
+      parameters:
+        - name: checkInId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Baggage list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BaggageResponseDTO'
+
+  /api/v1/check-ins/{checkInId}/baggage/{baggageId}:
+    delete:
+      tags: [Check-In, Baggage]
+      summary: Delete a baggage item
+      operationId: deleteBaggage
+      parameters:
+        - name: checkInId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: baggageId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          description: Baggage deleted
+
+  /api/v1/check-ins/{checkInId}/payment:
+    post:
+      tags: [Check-In, Payments]
+      summary: Process payment for baggage/fees
+      operationId: processPayment
+      parameters:
+        - name: checkInId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequestDTO'
+      responses:
+        "200":
+          description: Payment processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponseDTO'
+
+  /api/v1/check-ins/{checkInId}/confirm:
+    post:
+      tags: [Check-In]
+      summary: Confirm check-in
+      operationId: confirmCheckIn
+      parameters:
+        - name: checkInId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Check-in confirmed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckInResponseDTO'
+
+  /api/v1/check-ins/{checkInId}/cancel:
+    post:
+      tags: [Check-In]
+      summary: Cancel check-in
+      operationId: cancelCheckIn
+      parameters:
+        - name: checkInId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Check-in cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckInResponseDTO'
+
+  /api/v1/check-ins/{checkInId}:
+    get:
+      tags: [Check-In]
+      summary: Get check-in details
+      operationId: getCheckInDetails
+      parameters:
+        - name: checkInId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Check-in details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckInResponseDTO'
+
+  /api/v1/check-ins/passenger/{passengerId}:
+    get:
+      tags: [Check-In]
+      summary: Get all check-ins for a passenger
+      operationId: getCheckInsForPassenger
+      parameters:
+        - name: passengerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Passenger check-in summaries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PassengerCheckInSummaryDTO'
+
+  /api/v1/flights/{flightId}/seats/{seatNumber}/waitlist:
+    post:
+      tags: [Waitlist]
+      summary: Join waitlist for a specific seat
+      operationId: joinWaitlist
+      parameters:
+        - name: flightId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: seatNumber
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WaitlistJoinRequestDTO'
+      responses:
+        "201":
+          description: Waitlist joined
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WaitlistResponseDTO'
+
+  /api/v1/waitlist/{waitlistId}:
+    delete:
+      tags: [Waitlist]
+      summary: Leave waitlist
+      operationId: leaveWaitlist
+      parameters:
+        - name: waitlistId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          description: Left waitlist
+
+  /api/v1/waitlist/{waitlistId}/position:
+    get:
+      tags: [Waitlist]
+      summary: Get waitlist position
+      operationId: getWaitlistPosition
+      parameters:
+        - name: waitlistId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Waitlist position
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WaitlistPositionDTO'
+
+  /api/v1/passengers/{passengerId}/waitlist:
+    get:
+      tags: [Waitlist]
+      summary: Get all waitlist entries for passenger
+      operationId: getPassengerWaitlist
+      parameters:
+        - name: passengerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Passenger waitlist entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WaitlistResponseDTO'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        tokenType:
+          type: string
+          example: Bearer
+        passengerId:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+
+    FlightDTO:
+      type: object
+      properties:
+        flightId:
+          type: string
+        flightNumber:
+          type: string
+        origin:
+          type: string
+        destination:
+          type: string
+        departureTime:
+          type: string
+          format: date-time
+        arrivalTime:
+          type: string
+          format: date-time
+        status:
+          type: string
+        aircraftType:
+          type: string
+        totalSeats:
+          type: integer
+        availableSeats:
+          type: integer
+
+    FlightListResponseDTO:
+      type: object
+      properties:
+        flights:
+          type: array
+          items:
+            $ref: '#/components/schemas/FlightDTO'
+        total:
+          type: integer
+
+    SeatDTO:
+      type: object
+      description: Simplified seat representation
+      properties:
+        seatId:
+          type: integer
+          format: int64
+        flightId:
+          type: string
+        seatNumber:
+          type: string
+        seatType:
+          type: string
+        state:
+          $ref: '#/components/schemas/SeatState'
+
+    SeatMapResponseDTO:
+      type: object
+      properties:
+        flightId:
+          type: string
+        totalSeats:
+          type: integer
+        availableSeats:
+          type: integer
+        heldSeats:
+          type: integer
+        confirmedSeats:
+          type: integer
+        seats:
+          type: array
+          items:
+            $ref: '#/components/schemas/SeatDTO'
+
+    SeatReservationRequestDTO:
+      type: object
+      properties:
+        seatId:
+          type: integer
+          format: int64
+          nullable: true
+        passengerId:
+          type: string
+        seatNumber:
+          type: string
+
+    SeatReservationResponseDTO:
+      type: object
+      properties:
+        seatId:
+          type: integer
+          format: int64
+        flightId:
+          type: string
+        seatNumber:
+          type: string
+        state:
+          $ref: '#/components/schemas/SeatState'
+        heldBy:
+          type: string
+        heldUntil:
+          type: string
+          format: date-time
+        holdDurationSeconds:
+          type: integer
+        message:
+          type: string
+
+    CheckInRequestDTO:
+      type: object
+      required: [passengerId, flightId]
+      properties:
+        passengerId:
+          type: string
+        flightId:
+          type: string
+        seatNumber:
+          type: string
+          nullable: true
+
+    CheckInResponseDTO:
+      type: object
+      properties:
+        checkInId:
+          type: string
+        passengerId:
+          type: string
+        flightId:
+          type: string
+        seatId:
+          type: integer
+          format: int64
+          nullable: true
+        seatNumber:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/CheckInStatus'
+        checkInTime:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        cancelledAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        message:
+          type: string
+        baggageDetails:
+          type: array
+          items:
+            $ref: '#/components/schemas/BaggageResponseDTO'
+        totalBaggageFee:
+          type: number
+          format: double
+        boardingPass:
+          type: string
+
+    PassengerCheckInSummaryDTO:
+      type: object
+      properties:
+        checkInId:
+          type: string
+        passengerId:
+          type: string
+        flightId:
+          type: string
+        seatId:
+          type: integer
+          format: int64
+        status:
+          $ref: '#/components/schemas/CheckInStatus'
+        initiatedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    BaggageDetailsDTO:
+      type: object
+      required: [weightKg, baggageType]
+      properties:
+        weightKg:
+          type: number
+          format: double
+        dimensions:
+          type: string
+        baggageType:
+          $ref: '#/components/schemas/BaggageType'
+
+    BaggageResponseDTO:
+      type: object
+      properties:
+        baggageId:
+          type: integer
+          format: int64
+        checkInId:
+          type: string
+        weightKg:
+          type: number
+          format: double
+        dimensions:
+          type: string
+        baggageType:
+          $ref: '#/components/schemas/BaggageType'
+        excessWeightKg:
+          type: number
+          format: double
+        excessFee:
+          type: number
+          format: double
+        paymentStatus:
+          $ref: '#/components/schemas/PaymentStatus'
+        paymentTransactionId:
+          type: string
+        message:
+          type: string
+
+    PaymentRequestDTO:
+      type: object
+      required: [amount, paymentMethod]
+      properties:
+        amount:
+          type: number
+          format: double
+        paymentMethod:
+          type: string
+        cardNumber:
+          type: string
+        cardHolderName:
+          type: string
+
+    PaymentResponseDTO:
+      type: object
+      properties:
+        transactionId:
+          type: string
+        amount:
+          type: number
+          format: double
+        status:
+          $ref: '#/components/schemas/PaymentStatus'
+        message:
+          type: string
+        processedAt:
+          type: string
+          format: date-time
+
+    WaitlistJoinRequestDTO:
+      type: object
+      required: [passengerId]
+      properties:
+        passengerId:
+          type: string
+
+    WaitlistResponseDTO:
+      type: object
+      properties:
+        waitlistId:
+          type: integer
+          format: int64
+        passengerId:
+          type: string
+        flightId:
+          type: string
+        seatNumber:
+          type: string
+        position:
+          type: integer
+        status:
+          $ref: '#/components/schemas/WaitlistStatus'
+        joinedAt:
+          type: string
+          format: date-time
+        notifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+        assignedAt:
+          type: string
+          format: date-time
+          nullable: true
+        expiredAt:
+          type: string
+          format: date-time
+          nullable: true
+        message:
+          type: string
+
+    WaitlistPositionDTO:
+      type: object
+      properties:
+        waitlistId:
+          type: integer
+          format: int64
+        flightId:
+          type: string
+        seatNumber:
+          type: string
+        position:
+          type: integer
+        totalWaiting:
+          type: integer
+        status:
+          $ref: '#/components/schemas/WaitlistStatus'
+        message:
+          type: string
+
+    Seat:
+      type: object
+      description: Simplified Seat entity view from controller responses
+      properties:
+        seatId:
+          type: integer
+          format: int64
+        flightId:
+          type: string
+        seatNumber:
+          type: string
+        seatType:
+          type: string
+        state:
+          $ref: '#/components/schemas/SeatState'
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    SeatState:
+      type: string
+      description: Seat lifecycle state
+      enum: [AVAILABLE, HELD, CONFIRMED, CANCELLED]
+
+    CheckInStatus:
+      type: string
+      description: Check-in status
+      enum: [PENDING, COMPLETED, CANCELLED, WAITING_FOR_PAYMENT]
+
+    BaggageType:
+      type: string
+      enum: [CHECKED, CABIN, OVERSIZED]
+
+    PaymentStatus:
+      type: string
+      enum: [PENDING, SUCCESS, FAILED]
+
+    WaitlistStatus:
+      type: string
+      enum: [ACTIVE, NOTIFIED, ASSIGNED, CANCELLED, EXPIRED]
+
+security:
+  - bearerAuth: []
+

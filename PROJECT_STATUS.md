@@ -2,7 +2,7 @@
 
 **Last Updated:** February 27, 2026  
 **Project Phase:** MVP Development  
-**Overall Progress:** 9% Complete
+**Overall Progress:** 18% Complete
 
 ---
 
@@ -10,9 +10,9 @@
 
 | Status | Count | Percentage |
 |--------|-------|------------|
-| ✅ Completed | 1 | 9% |
+| ✅ Completed | 2 | 18% |
 | 🚧 In Progress | 0 | 0% |
-| ⏳ Not Started | 10 | 91% |
+| ⏳ Not Started | 9 | 82% |
 
 ---
 
@@ -112,27 +112,27 @@
 ---
 
 ### 005: Check-In Module
-**Status:** ⏳ Not Started  
-**Progress:** 0%  
+**Status:** ✅ Completed  
+**Progress:** 100%  
 **Priority:** High  
 **Dependencies:** Task 004 (Seat Management)
 
 **Deliverables:**
-- [ ] Check-in service layer
-- [ ] Check-in state machine
-- [ ] Baggage service integration (mock)
-- [ ] Payment service integration (mock)
-- [ ] Check-in controller with REST endpoints
-- [ ] DTOs and validation
-- [ ] Transaction management
-- [ ] Integration with seat management
+- [x] Check-in service layer
+- [x] Check-in state machine
+- [x] Baggage service integration (mock)
+- [x] Payment service integration (mock)
+- [x] Check-in controller with REST endpoints
+- [x] DTOs and validation
+- [x] Transaction management
+- [x] Integration with seat management
 
 **Completion Criteria:**
-- Users can start check-in and reserve seat
-- Baggage details validated and stored
-- Payment processing works (mock)
-- Check-in confirmation updates seat to CONFIRMED
-- Transactions maintain data consistency
+- ✅ Users can start check-in and reserve seat
+- ✅ Baggage details validated and stored
+- ✅ Payment processing works (mock)
+- ✅ Check-in confirmation updates seat to CONFIRMED
+- ✅ Transactions maintain data consistency
 
 ---
 

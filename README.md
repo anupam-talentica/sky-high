@@ -15,7 +15,7 @@ SkyHigh Core is a comprehensive digital check-in solution that enables passenger
 
 - **Backend**: Java 17, Spring Boot 3.2.2, PostgreSQL 15
 - **Frontend**: React 18, TypeScript, Vite
-- **Caching**: Caffeine (in-memory)
+- **Caching**: Caffeine (in-memory); optional **Redis 7** for seat map cache, rate limiting, and optimizations
 - **Database**: PostgreSQL with Flyway migrations
 - **Deployment**: Docker, Docker Compose, AWS (EC2, S3, CloudFront)
 - **CI/CD**: GitHub Actions
@@ -105,6 +105,7 @@ Sky-High/
    - Backend API: http://localhost:8080
    - Frontend: http://localhost:80
    - API Health Check: http://localhost:8080/actuator/health
+   - Redis: localhost:6379 (included for optional caching/rate-limiting; see [optimization-tasks](tasks/optimization-tasks/))
 
 5. **View logs**
    ```bash
@@ -115,6 +116,32 @@ Sky-High/
    ```bash
    docker-compose down
    ```
+
+### Test User Credentials
+
+The application comes with pre-configured test users for development and testing:
+
+#### User 1: John Doe
+- **Email**: `john@example.com`
+- **Password**: `demo123`
+- **Passenger ID**: P123456
+- **Details**: DOB: 1985-03-15, Nationality: USA
+
+#### User 2: Jane Smith
+- **Email**: `jane@example.com`
+- **Password**: `demo456`
+- **Passenger ID**: P789012
+- **Details**: DOB: 1990-07-22, Nationality: USA
+
+#### Test Flight Available
+- **Flight Number**: SK1234
+- **Route**: JFK → LAX (New York to Los Angeles)
+- **Flight ID**: FL001
+- **Aircraft**: Boeing 737-800
+- **Total Seats**: 189 (12 First Class + 177 Economy)
+- **Departure**: 2 days from current date
+
+**Note**: These credentials are for development/testing only and should not be used in production.
 
 #### Option 2: Running Services Individually
 
@@ -273,6 +300,8 @@ The production build will be created in `dist/`
 | `JWT_SECRET` | JWT signing secret | (must be set) |
 | `SERVER_PORT` | Backend server port | `8080` |
 | `CORS_ORIGINS` | Allowed CORS origins | `http://localhost:5173` |
+| `REDIS_HOST` | Redis host (when using Redis) | `redis` (Docker) / `localhost` (local) |
+| `REDIS_PORT` | Redis port | `6379` |
 
 ### Frontend Environment Variables
 
@@ -362,6 +391,21 @@ docker-compose logs -f postgres
    node --version  # Should be 20+
    ```
 
+### Redis not connecting
+
+1. Check Redis is running:
+   ```bash
+   docker-compose ps redis
+   ```
+
+2. Test Redis from host:
+   ```bash
+   docker-compose exec redis redis-cli ping
+   ```
+   Should return `PONG`.
+
+3. If backend is configured to use Redis but Redis is down, ensure the app degrades gracefully (e.g. falls back to DB); see [optimization-tasks](tasks/optimization-tasks/).
+
 ### Database migration errors
 
 1. Check Flyway migration status:
@@ -381,6 +425,7 @@ docker-compose logs -f postgres
 - [Technical Requirements Document (TRD)](./TRD.md)
 - [Project Status](./PROJECT_STATUS.md)
 - [Task Breakdown](./tasks/)
+- [Optimization Tasks (Redis)](./tasks/optimization-tasks/) — Redis setup, seat map cache, rate limiting
 
 ## 🤝 Contributing
 

@@ -1,0 +1,30 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+  
+  flyway:
+    enabled: false
+  
+  security:
+    jwt:
+      secret: test-secret-key-for-jwt-token-generation-must-be-at-least-256-bits-long-for-hs512
+      expiration: 3600000
+
+# Disable Redis seat map cache and distributed seat lock in tests (use DB fallback)
+app:
+  redis:
+    seat-map-cache-enabled: false
+    distributed-seat-lock-enabled: false
+
+logging:
+  level:
+    root: WARN
+    com.skyhigh: INFO

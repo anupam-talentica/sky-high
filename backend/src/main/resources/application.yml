@@ -43,10 +43,32 @@ spring:
     caffeine:
       spec: maximumSize=1000,expireAfterWrite=300s
 
+  # Redis (optional - for seat map cache). When disabled, seat map reads fall back to DB.
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 16
+          max-idle: 8
+          min-idle: 4
+          max-wait: 2000ms
+
   security:
     jwt:
       secret: ${JWT_SECRET:your-256-bit-secret-key-change-this-in-production-please-make-it-long}
-      expiration: 86400000 # 24 hours in milliseconds
+      expiration: 3600000 # 1 hour in milliseconds (3600000 ms)
+
+# OpenAPI / Swagger UI - docs at http://localhost:8080/swagger-ui.html
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
 
 server:
   port: ${SERVER_PORT:8080}
@@ -75,10 +97,10 @@ management:
 logging:
   level:
     root: INFO
-    com.skyhigh: DEBUG
+    com.skyhigh: INFO
     org.springframework.web: INFO
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.hibernate.SQL: INFO
+    org.hibernate.type.descriptor.sql.BasicBinder: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
@@ -88,7 +110,27 @@ logging:
     max-history: 30
 
 app:
+  redis:
+    seat-map-cache-enabled: ${REDIS_SEAT_MAP_CACHE_ENABLED:true}
+    seat-map-cache-ttl-seconds: 30 # TTL for seat map cache entries (5-30s balances freshness vs load; 30s meets P95 < 1s)
+    # Distributed seat lock: enable when running multiple backend instances to avoid duplicate seat assignments.
+    # Requires Redis (spring.data.redis.*). When disabled or Redis unavailable, reservation uses only DB optimistic locking.
+    distributed-seat-lock-enabled: ${REDIS_DISTRIBUTED_SEAT_LOCK_ENABLED:false}
+    seat-lock-ttl-seconds: 10 # Lock TTL (5-15s); avoids deadlock if a node crashes while holding the lock.
   seat-hold-duration: 120 # seconds
-  seat-release-job-interval: 30000 # milliseconds (30 seconds)
+  seat-release-job-interval: 5000 # milliseconds (5 seconds)
+  seat-expiration-batch-size: 100 # maximum seats to process per run
+  seat-expiration-retry-attempts: 3 # number of retry attempts on failure
+  baggage:
+    max-weight: 25 # kg (free baggage allowance)
+    excess-fee-per-kg: 1 # USD per kg (excess baggage charge)
+  payment:
+    mock-success-rate: 0.95 # 95% success rate for mock payments
   cors:
     allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:3000}
+  rate-limit:
+    seat-map:
+      enabled: ${SEATMAP_RATE_LIMIT_ENABLED:true}
+      window-seconds: 2       # window size for counting seat-map accesses
+      threshold: 50           # maximum allowed seat-map requests per source within the window
+      block-seconds: 120      # how long to block abusive sources (in seconds)

@@ -13,62 +13,62 @@ Design and implement the complete database schema with all required tables, rela
 ## Key Deliverables
 
 ### 1. Database Schema
-- [ ] Create `flights` table with flight information
-- [ ] Create `passengers` table with hardcoded users
-- [ ] Create `seats` table with state machine and version column
-- [ ] Create `check_ins` table for check-in records
-- [ ] Create `baggage` table for baggage information
-- [ ] Create `waitlist` table for waitlist entries
-- [ ] Create `audit_logs` table for state change tracking
+- [x] Create `flights` table with flight information
+- [x] Create `passengers` table with hardcoded users
+- [x] Create `seats` table with state machine and version column
+- [x] Create `check_ins` table for check-in records
+- [x] Create `baggage` table for baggage information
+- [x] Create `waitlist` table for waitlist entries
+- [x] Create `audit_logs` table for state change tracking
 
 ### 2. Indexes and Constraints
-- [ ] Add index on seats (flight_id, state)
-- [ ] Add index on seats (held_until)
-- [ ] Add unique constraint on seats (flight_id, seat_number)
-- [ ] Add index on check_ins (passenger_id, flight_id)
-- [ ] Add index on waitlist (flight_id, seat_number, status)
-- [ ] Add CHECK constraints for state machine validation
+- [x] Add index on seats (flight_id, state)
+- [x] Add index on seats (held_until)
+- [x] Add unique constraint on seats (flight_id, seat_number)
+- [x] Add index on check_ins (passenger_id, flight_id)
+- [x] Add index on waitlist (flight_id, seat_number, status)
+- [x] Add CHECK constraints for state machine validation
 
 ### 3. Flyway Migrations
-- [ ] Create V1__create_flights_table.sql
-- [ ] Create V2__create_passengers_table.sql
-- [ ] Create V3__create_seats_table.sql (with version column)
-- [ ] Create V4__create_check_ins_table.sql
-- [ ] Create V5__create_baggage_table.sql
-- [ ] Create V6__create_waitlist_table.sql
-- [ ] Create V7__create_audit_logs_table.sql
-- [ ] Create V8__insert_sample_data.sql
+- [x] Create V1__create_flights_table.sql
+- [x] Create V2__create_passengers_table.sql
+- [x] Create V3__create_seats_table.sql (with version column)
+- [x] Create V4__create_check_ins_table.sql
+- [x] Create V5__create_baggage_table.sql
+- [x] Create V6__create_waitlist_table.sql
+- [x] Create V7__create_audit_logs_table.sql
+- [x] Create V8__insert_sample_data.sql
 
 ### 4. JPA Entities
-- [ ] Create Flight entity
-- [ ] Create Passenger entity
-- [ ] Create Seat entity with @Version annotation
-- [ ] Create CheckIn entity
-- [ ] Create Baggage entity
-- [ ] Create Waitlist entity
-- [ ] Create AuditLog entity
-- [ ] Implement state machine validation in Seat entity
+- [x] Create Flight entity
+- [x] Create Passenger entity
+- [x] Create Seat entity with @Version annotation
+- [x] Create CheckIn entity
+- [x] Create Baggage entity
+- [x] Create Waitlist entity
+- [x] Create AuditLog entity
+- [x] Implement state machine validation in Seat entity
 
 ### 5. Repositories
-- [ ] Create FlightRepository with custom queries
-- [ ] Create PassengerRepository
-- [ ] Create SeatRepository with optimistic locking
-- [ ] Create CheckInRepository
-- [ ] Create BaggageRepository
-- [ ] Create WaitlistRepository
-- [ ] Create AuditLogRepository
+- [x] Create FlightRepository with custom queries
+- [x] Create PassengerRepository
+- [x] Create SeatRepository with optimistic locking
+- [x] Create CheckInRepository
+- [x] Create BaggageRepository
+- [x] Create WaitlistRepository
+- [x] Create AuditLogRepository
 
 ### 6. Sample Data
-- [ ] Insert hardcoded passengers (P123456, P789012)
-- [ ] Insert sample flight (SK1234: JFK → LAX)
-- [ ] Insert 189 seats for Boeing 737-800
-- [ ] Hash passwords with BCrypt
+- [x] Insert hardcoded passengers (P123456, P789012)
+- [x] Insert sample flight (SK1234: JFK → LAX)
+- [x] Insert 183 seats for Boeing 737-800
+- [x] Hash passwords with BCrypt
 
 ### 7. Connection Pooling
-- [ ] Configure HikariCP in application.yml
-- [ ] Set maximum pool size: 20
-- [ ] Set minimum idle: 5
-- [ ] Configure timeouts and max lifetime
+- [x] Configure HikariCP in application.yml
+- [x] Set maximum pool size: 20
+- [x] Set minimum idle: 5
+- [x] Configure timeouts and max lifetime
 
 ## Dependencies
 - PostgreSQL 15 container running

@@ -112,6 +112,10 @@ User → CloudFront (Frontend) → EC2 (Backend API) → PostgreSQL → Response
                                     ↓
                               In-Memory Cache
                               (Caffeine)
+                                    ↓
+                           External APIs:
+                           - AviationStack (Flight Status)
+                           - Mock Services (Weight, Payment)
 ```
 
 ### 2.4 Network Configuration
@@ -143,6 +147,8 @@ User → CloudFront (Frontend) → EC2 (Backend API) → PostgreSQL → Response
 | **Security** | Spring Security + JWT | 6.2.x |
 | **Testing** | JUnit 5 + Mockito | 5.10.x |
 | **API Docs** | SpringDoc OpenAPI | 2.3.x |
+| **HTTP Client** | RestTemplate / WebClient | Spring 6.x |
+| **Resilience** | Resilience4j (Circuit Breaker) | 2.1.x |
 
 ### 3.2 Frontend Stack
 
@@ -168,6 +174,157 @@ User → CloudFront (Frontend) → EC2 (Backend API) → PostgreSQL → Response
 | **Monitoring** | CloudWatch | Logs and metrics |
 | **IaC** | Terraform | Infrastructure as Code |
 | **Container Runtime** | Docker Compose | Container orchestration |
+
+### 3.4 Key Backend Dependencies (Maven)
+
+**Spring Boot Starters**:
+```xml
+<!-- Core Framework -->
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-web</artifactId>
+</dependency>
+
+<!-- Database -->
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-jpa</artifactId>
+</dependency>
+
+<!-- Security -->
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-security</artifactId>
+</dependency>
+
+<!-- Validation -->
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-validation</artifactId>
+</dependency>
+
+<!-- Actuator for Health Checks -->
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-actuator</artifactId>
+</dependency>
+```
+
+**Database & Migrations**:
+```xml
+<!-- PostgreSQL Driver -->
+<dependency>
+    <groupId>org.postgresql</groupId>
+    <artifactId>postgresql</artifactId>
+    <scope>runtime</scope>
+</dependency>
+
+<!-- Flyway for Database Migrations -->
+<dependency>
+    <groupId>org.flywaydb</groupId>
+    <artifactId>flyway-core</artifactId>
+</dependency>
+```
+
+**Caching**:
+```xml
+<!-- Caffeine Cache -->
+<dependency>
+    <groupId>com.github.ben-manes.caffeine</groupId>
+    <artifactId>caffeine</artifactId>
+</dependency>
+
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-cache</artifactId>
+</dependency>
+```
+
+**Resilience & External API Integration**:
+```xml
+<!-- Resilience4j for Circuit Breaker -->
+<dependency>
+    <groupId>io.github.resilience4j</groupId>
+    <artifactId>resilience4j-spring-boot3</artifactId>
+    <version>2.1.0</version>
+</dependency>
+
+<!-- For AviationStack API Integration -->
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-webflux</artifactId>
+</dependency>
+```
+
+**Rate Limiting**:
+```xml
+<!-- Bucket4j for Rate Limiting -->
+<dependency>
+    <groupId>com.github.vladimir-bukhtoyarov</groupId>
+    <artifactId>bucket4j-core</artifactId>
+    <version>8.7.0</version>
+</dependency>
+```
+
+**JWT Authentication**:
+```xml
+<!-- JWT Support -->
+<dependency>
+    <groupId>io.jsonwebtoken</groupId>
+    <artifactId>jjwt-api</artifactId>
+    <version>0.12.3</version>
+</dependency>
+<dependency>
+    <groupId>io.jsonwebtoken</groupId>
+    <artifactId>jjwt-impl</artifactId>
+    <version>0.12.3</version>
+    <scope>runtime</scope>
+</dependency>
+<dependency>
+    <groupId>io.jsonwebtoken</groupId>
+    <artifactId>jjwt-jackson</artifactId>
+    <version>0.12.3</version>
+    <scope>runtime</scope>
+</dependency>
+```
+
+**API Documentation**:
+```xml
+<!-- SpringDoc OpenAPI (Swagger) -->
+<dependency>
+    <groupId>org.springdoc</groupId>
+    <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+    <version>2.3.0</version>
+</dependency>
+```
+
+**Testing**:
+```xml
+<!-- Spring Boot Test -->
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-test</artifactId>
+    <scope>test</scope>
+</dependency>
+
+<!-- TestContainers for Integration Tests -->
+<dependency>
+    <groupId>org.testcontainers</groupId>
+    <artifactId>postgresql</artifactId>
+    <version>1.19.3</version>
+    <scope>test</scope>
+</dependency>
+```
+
+**Utilities**:
+```xml
+<!-- Lombok for Boilerplate Reduction -->
+<dependency>
+    <groupId>org.projectlombok</groupId>
+    <artifactId>lombok</artifactId>
+    <optional>true</optional>
+</dependency>
+```
 
 ---
 
@@ -450,7 +607,7 @@ Stored in `application.yml` or database:
 
 ### 9.1 Mock Services (MVP)
 
-All external services are mocked/stubbed for MVP:
+The following services are mocked/stubbed for MVP:
 
 #### 9.1.1 Weight Service
 
@@ -485,13 +642,169 @@ All external services are mocked/stubbed for MVP:
 
 **API**: Internal service call
 
-### 9.2 Integration Points
+---
 
-**Design**:
-- Clear service interfaces
+### 9.2 Real External API Integration
+
+#### 9.2.1 AviationStack API (Flight Status Service)
+
+**Purpose**: Fetch real-time flight status, gate information, and airport data
+
+**Provider**: AviationStack (https://aviationstack.com/)
+
+**API Details**:
+- **Base URL**: `http://api.aviationstack.com/v1`
+- **Authentication**: API key via query parameter `access_key`
+- **Free Tier**: 100 API calls/month
+- **Paid Tier**: 500 calls/month at $9.99 (Basic Plan)
+
+**Endpoints Used**:
+
+1. **Get Flight Status**
+```
+GET /flights?flight_iata={flightNumber}&access_key={API_KEY}
+
+Response:
+{
+  "data": [
+    {
+      "flight_date": "2026-02-27",
+      "flight_status": "scheduled",
+      "departure": {
+        "airport": "John F Kennedy International",
+        "timezone": "America/New_York",
+        "iata": "JFK",
+        "terminal": "4",
+        "gate": "B12",
+        "scheduled": "2026-02-27T14:30:00+00:00"
+      },
+      "arrival": {
+        "airport": "Los Angeles International",
+        "timezone": "America/Los_Angeles",
+        "iata": "LAX",
+        "terminal": "5",
+        "gate": "52A",
+        "scheduled": "2026-02-27T17:45:00+00:00"
+      },
+      "airline": {
+        "name": "SkyHigh Airlines",
+        "iata": "SK"
+      },
+      "flight": {
+        "number": "1234",
+        "iata": "SK1234"
+      }
+    }
+  ]
+}
+```
+
+**Implementation Details**:
+
+**Service Layer** (`FlightStatusService.java`):
+```java
+@Service
+public class FlightStatusService {
+    
+    private final RestTemplate restTemplate;
+    private final String apiKey;
+    private final String baseUrl = "http://api.aviationstack.com/v1";
+    
+    @Cacheable(value = "flightStatus", key = "#flightNumber", unless = "#result == null")
+    public FlightStatusResponse getFlightStatus(String flightNumber) {
+        String url = String.format("%s/flights?flight_iata=%s&access_key=%s", 
+            baseUrl, flightNumber, apiKey);
+        
+        try {
+            AviationStackResponse response = restTemplate.getForObject(url, AviationStackResponse.class);
+            return mapToFlightStatus(response);
+        } catch (Exception e) {
+            log.error("Failed to fetch flight status from AviationStack", e);
+            return getFallbackFlightStatus(flightNumber);
+        }
+    }
+    
+    private FlightStatusResponse getFallbackFlightStatus(String flightNumber) {
+        // Fallback to local database
+        return flightRepository.findByFlightNumber(flightNumber)
+            .map(this::mapToFlightStatus)
+            .orElseThrow(() -> new FlightNotFoundException(flightNumber));
+    }
+}
+```
+
+**Caching Strategy**:
+- Cache flight status for 5 minutes
+- Cache key: `flightStatus:{flightNumber}`
+- Use Caffeine in-memory cache for MVP
+- TTL: 300 seconds (5 minutes)
+- Reduces API calls by ~80%
+
+**Error Handling**:
+1. **API Unavailable**: Fallback to local database flight information
+2. **Rate Limit Exceeded**: Use cached data, log warning
+3. **Flight Not Found**: Return 404 to client
+4. **Timeout**: 5-second timeout, then fallback
+
+**Circuit Breaker Configuration**:
+```yaml
+resilience4j:
+  circuitbreaker:
+    instances:
+      aviationstack:
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 60000
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+```
+
+**Retry Configuration**:
+```yaml
+resilience4j:
+  retry:
+    instances:
+      aviationstack:
+        max-attempts: 3
+        wait-duration: 1000
+        exponential-backoff-multiplier: 2
+```
+
+**Rate Limiting Strategy**:
+- Free tier: 100 calls/month = ~3 calls/day
+- Cache aggressively to stay within limits
+- Only fetch on check-in initiation (not on every seat selection)
+- Monitor usage via CloudWatch metrics
+
+**Configuration** (`application.yml`):
+```yaml
+external:
+  aviationstack:
+    api-key: ${AVIATIONSTACK_API_KEY}
+    base-url: http://api.aviationstack.com/v1
+    timeout: 5000
+    cache-ttl: 300
+    enabled: true
+```
+
+**Acceptance Criteria**:
+- ✅ Flight status fetched within 2 seconds (P95)
+- ✅ Fallback to local database if API unavailable
+- ✅ Caching reduces API calls by 80%+
+- ✅ Circuit breaker prevents cascading failures
+- ✅ Stays within free tier limits (100 calls/month)
+
+---
+
+### 9.3 Integration Points
+
+**Design Principles**:
+- Clear service interfaces with dependency injection
 - Easy to replace mocks with real implementations
-- Circuit breaker pattern for resilience
+- Circuit breaker pattern for resilience (Resilience4j)
 - Retry logic with exponential backoff
+- Graceful degradation when services unavailable
+- Comprehensive logging of all external calls
+- Metrics tracking for API performance and failures
 
 ---
 
@@ -837,12 +1150,15 @@ mvn test -Dtest=SeatServiceTest
 5. **Terraform AWS Provider**: https://registry.terraform.io/providers/hashicorp/aws/
 6. **React Documentation**: https://react.dev/
 7. **Material-UI**: https://mui.com/
+8. **AviationStack API Documentation**: https://aviationstack.com/documentation
+9. **Resilience4j Documentation**: https://resilience4j.readme.io/docs
 
 ### 14.7 Revision History
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | 2026-02-27 | SkyHigh Engineering | Initial MVP TRD |
+| 1.1 | 2026-02-27 | SkyHigh Engineering | Added AviationStack API integration (Section 9.2) |
 
 ---
 

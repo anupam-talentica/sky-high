@@ -375,6 +375,106 @@ As a system administrator, I want to detect and block abusive access patterns (l
 
 ---
 
+### FR-009 | Real-Time Flight Status Integration
+
+**Priority**: P1 (High)
+
+#### User Story
+As a passenger, I want to see my flight's current status (on-time, delayed, cancelled) and gate information during check-in so that I have the most up-to-date information before completing my check-in.
+
+As a system administrator, I want to prevent check-ins for cancelled or significantly delayed flights so that passengers are not assigned seats on flights that won't operate as scheduled.
+
+#### Expected Behavior/Outcome
+
+**Flight Status Display**:
+1. During check-in initiation, system fetches real-time flight status from AviationStack API
+2. Displays flight information:
+   - Flight status: Scheduled, Active, Landed, Cancelled, Diverted, Delayed
+   - Departure gate and terminal
+   - Boarding time
+   - Actual departure time (if different from scheduled)
+   - Delay duration (if applicable)
+3. Updates flight status every 5 minutes during check-in process
+4. Caches flight data for 5 minutes to reduce API calls
+
+**Check-In Validation Rules**:
+1. **Cancelled Flights**: Block check-in, display message: "This flight has been cancelled. Please contact customer service."
+2. **Significantly Delayed Flights** (>3 hours): Display warning: "Your flight is delayed by X hours. Gate information may change."
+3. **Gate Changes**: Highlight gate changes prominently: "⚠️ Gate changed from B12 to C5"
+4. **On-Time Flights**: Display confirmation: "✓ Flight is on schedule"
+
+**Integration Details**:
+- **API Provider**: AviationStack (https://aviationstack.com/)
+- **Endpoint**: `GET /flights?flight_iata={flightNumber}&access_key={API_KEY}`
+- **Free Tier**: 100 API calls/month (sufficient for MVP demo)
+- **Paid Tier**: 500 calls/month at $9.99 (if needed for production)
+
+**Response Data Used**:
+```json
+{
+  "flight_status": "scheduled",
+  "departure": {
+    "airport": "JFK",
+    "timezone": "America/New_York",
+    "iata": "JFK",
+    "terminal": "4",
+    "gate": "B12",
+    "scheduled": "2026-02-27T14:30:00+00:00"
+  },
+  "arrival": {
+    "airport": "LAX",
+    "timezone": "America/Los_Angeles",
+    "iata": "LAX",
+    "terminal": "5",
+    "gate": "52A",
+    "scheduled": "2026-02-27T17:45:00+00:00"
+  },
+  "airline": {
+    "name": "SkyHigh Airlines",
+    "iata": "SK"
+  },
+  "flight": {
+    "number": "1234",
+    "iata": "SK1234"
+  }
+}
+```
+
+**Error Handling**:
+1. If AviationStack API is unavailable:
+   - Fallback to database flight information
+   - Display warning: "Unable to fetch real-time status"
+   - Allow check-in to proceed with cached data
+2. If flight not found in AviationStack:
+   - Use local database as source of truth
+   - Log discrepancy for investigation
+3. Circuit breaker pattern: After 3 consecutive failures, stop calling API for 5 minutes
+
+**Caching Strategy**:
+- Cache flight status for 5 minutes
+- Cache key: `flight:status:{flightNumber}:{date}`
+- Invalidate on manual refresh by passenger
+- Reduce API calls while maintaining freshness
+
+**System Behavior**:
+1. Flight status is fetched when passenger initiates check-in
+2. Status is displayed prominently at top of check-in flow
+3. Gate and terminal information is included in boarding pass
+4. Delayed/cancelled flights trigger appropriate workflows
+5. All API calls are logged with response time and status
+6. Failed API calls trigger fallback to local database
+7. System continues to function if AviationStack is unavailable
+
+**Acceptance Criteria**:
+- ✅ Real-time flight status displayed within 2 seconds of check-in start
+- ✅ Cancelled flights block check-in with clear message
+- ✅ Gate changes are highlighted prominently
+- ✅ System falls back gracefully if API is unavailable
+- ✅ API response time < 1 second (P95)
+- ✅ Flight status cache reduces API calls by 80%+
+
+---
+
 ## 5. Non-Functional Requirements
 
 ### 5.1 Performance
@@ -734,6 +834,71 @@ DELETE /waitlist/{waitlistId}
 Response 204: No Content
 ```
 
+#### 7.3.9 Get Flight Status
+```
+GET /flights/{flightId}/status
+
+Response 200:
+{
+  "flightId": "SK1234",
+  "flightNumber": "SK1234",
+  "status": "scheduled",
+  "departure": {
+    "airport": "JFK",
+    "iata": "JFK",
+    "terminal": "4",
+    "gate": "B12",
+    "scheduledTime": "2026-02-27T14:30:00Z",
+    "actualTime": "2026-02-27T14:30:00Z"
+  },
+  "arrival": {
+    "airport": "LAX",
+    "iata": "LAX",
+    "terminal": "5",
+    "gate": "52A",
+    "scheduledTime": "2026-02-27T17:45:00Z",
+    "estimatedTime": "2026-02-27T17:45:00Z"
+  },
+  "delay": {
+    "duration": 0,
+    "reason": null
+  },
+  "lastUpdated": "2026-02-27T10:30:00Z"
+}
+
+Response 200 (Delayed):
+{
+  "flightId": "SK1234",
+  "flightNumber": "SK1234",
+  "status": "delayed",
+  "departure": {
+    "airport": "JFK",
+    "iata": "JFK",
+    "terminal": "4",
+    "gate": "B12",
+    "scheduledTime": "2026-02-27T14:30:00Z",
+    "actualTime": "2026-02-27T16:00:00Z"
+  },
+  "arrival": {
+    "airport": "LAX",
+    "iata": "LAX",
+    "terminal": "5",
+    "gate": "52A",
+    "scheduledTime": "2026-02-27T17:45:00Z",
+    "estimatedTime": "2026-02-27T19:15:00Z"
+  },
+  "delay": {
+    "duration": 90,
+    "reason": "Weather conditions"
+  },
+  "lastUpdated": "2026-02-27T10:30:00Z"
+}
+
+Error Responses:
+  404: Flight not found
+  503: Flight status service unavailable (fallback to local data)
+```
+
 ### 7.4 Error Response Format
 ```json
 {
@@ -997,10 +1162,18 @@ public class Seat {
 - **Monitoring**: CloudWatch
 - **Logging**: CloudWatch Logs
 
-### 9.4 External Services (Mock/Stub)
-- **Weight Service**: Mock REST API
-- **Payment Service**: Mock REST API
-- **Email Service**: AWS SES (Simple Email Service)
+### 9.4 External Services
+
+#### Mock/Stub Services
+- **Weight Service**: Mock REST API for baggage validation
+- **Payment Service**: Mock REST API for payment processing
+- **Email Service**: AWS SES (Simple Email Service) for notifications
+
+#### Real External APIs
+- **AviationStack API**: Real-time flight status, gate information, and airport data
+  - Free Tier: 100 API calls/month
+  - Endpoint: https://api.aviationstack.com/v1/flights
+  - Documentation: https://aviationstack.com/documentation
 
 ### 9.5 Development Tools
 - **Version Control**: Git
@@ -1055,12 +1228,14 @@ The following features are explicitly **not included** in MVP:
 1. **PostgreSQL Concurrency Control**: https://www.postgresql.org/docs/current/mvcc.html
 2. **Spring Boot Caching**: https://spring.io/guides/gs/caching/
 3. **REST API Design Guidelines**: https://restfulapi.net/
+4. **AviationStack API Documentation**: https://aviationstack.com/documentation
 
 ### C. Revision History
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | 2026-02-27 | SkyHigh Engineering | Initial MVP draft |
+| 1.1 | 2026-02-27 | SkyHigh Engineering | Added FR-009: AviationStack API integration for real-time flight status |
 
 ---
 
