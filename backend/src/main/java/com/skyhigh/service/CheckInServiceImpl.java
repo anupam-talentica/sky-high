@@ -358,8 +358,31 @@ public class CheckInServiceImpl implements CheckInService {
 
         CheckIn checkIn = getCheckInById(checkInId);
 
-        // Allow confirmation from PAYMENT_COMPLETED or BAGGAGE_ADDED (if no payment required)
-        if (checkIn.getStatus() == CheckInStatus.BAGGAGE_ADDED) {
+        // Handle different states
+        if (checkIn.getStatus() == CheckInStatus.PENDING) {
+            // Check if there's any baggage added
+            List<BaggageResponseDTO> baggageList = baggageService.getAllBaggageForCheckIn(checkInId);
+            
+            if (baggageList.isEmpty()) {
+                // No baggage added, skip directly to PAYMENT_COMPLETED
+                logger.info("No baggage added for check-in: {}. Transitioning to PAYMENT_COMPLETED.", checkInId);
+                transitionCheckInStatus(checkIn, CheckInStatus.PAYMENT_COMPLETED);
+                checkInRepository.save(checkIn);
+                
+                auditLogService.logStateChange(
+                        "CheckIn",
+                        checkInId,
+                        String.format("{\"status\":\"%s\"}", CheckInStatus.PENDING),
+                        String.format("{\"status\":\"%s\",\"reason\":\"No baggage added\"}", CheckInStatus.PAYMENT_COMPLETED),
+                        checkIn.getPassengerId()
+                );
+            } else {
+                // Baggage exists but status is still PENDING - this shouldn't happen normally
+                throw new InvalidCheckInStateException(
+                    "Cannot confirm check-in. Check-in is in PENDING state with baggage. Please complete the check-in flow."
+                );
+            }
+        } else if (checkIn.getStatus() == CheckInStatus.BAGGAGE_ADDED) {
             // Check if there's any unpaid baggage
             List<BaggageResponseDTO> baggageList = baggageService.getAllBaggageForCheckIn(checkInId);
             BigDecimal totalUnpaidFees = baggageList.stream()
@@ -387,7 +410,7 @@ public class CheckInServiceImpl implements CheckInService {
             );
         } else if (checkIn.getStatus() != CheckInStatus.PAYMENT_COMPLETED) {
             throw new InvalidCheckInStateException(
-                String.format("Cannot confirm check-in. Check-in is in %s state. Please complete payment first.", 
+                String.format("Cannot confirm check-in. Check-in is in %s state. Please complete the check-in flow.", 
                              checkIn.getStatus())
             );
         }

@@ -1,102 +1,90 @@
 package com.skyhigh.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.skyhigh.dto.notification.NotificationMessage;
+import com.skyhigh.enums.NotificationType;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.data.redis.core.ListOperations;
+import org.springframework.data.redis.core.RedisTemplate;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class NotificationServiceImplTest {
 
-    private final NotificationServiceImpl notificationService = new NotificationServiceImpl();
+    private RedisTemplate<String, String> redisTemplate;
+    private ListOperations<String, String> listOperations;
+    private ObjectMapper objectMapper;
+    private NotificationServiceImpl notificationService;
 
-    @Test
-    void sendSeatAssignmentNotification_ShouldNotThrowException() {
-        assertDoesNotThrow(() ->
-                notificationService.sendSeatAssignmentNotification(
-                        "passenger@example.com",
-                        "P123",
-                        "SK123",
-                        "12A"
-                )
-        );
+    @BeforeEach
+    void setUp() {
+        //noinspection unchecked
+        redisTemplate = (RedisTemplate<String, String>) mock(RedisTemplate.class);
+        //noinspection unchecked
+        listOperations = (ListOperations<String, String>) mock(ListOperations.class);
+        when(redisTemplate.opsForList()).thenReturn(listOperations);
+
+        objectMapper = new ObjectMapper();
+        notificationService = new NotificationServiceImpl(redisTemplate, objectMapper, "notifications:queue-test");
     }
 
     @Test
-    void sendWaitlistExpirationNotification_ShouldNotThrowException() {
-        assertDoesNotThrow(() ->
-                notificationService.sendWaitlistExpirationNotification(
-                        "passenger@example.com",
-                        "P123",
-                        "SK123",
-                        "12A"
-                )
+    void sendSeatAssignmentNotification_ShouldEnqueueExpectedPayload() throws Exception {
+        notificationService.sendSeatAssignmentNotification(
+                "passenger@example.com",
+                "P123",
+                "SK123",
+                "12A"
         );
+
+        ArgumentCaptor<String> payloadCaptor = ArgumentCaptor.forClass(String.class);
+        verify(listOperations).rightPush(eq("notifications:queue-test"), payloadCaptor.capture());
+
+        String payload = payloadCaptor.getValue();
+        assertNotNull(payload);
+
+        NotificationMessage message = objectMapper.readValue(payload, NotificationMessage.class);
+        assertEquals(NotificationType.WAITLIST_ASSIGNED, message.getType());
+        assertEquals("passenger@example.com", message.getRecipient());
+        assertEquals("P123", message.getMetadata().get("passengerId"));
+        assertEquals("SK123", message.getMetadata().get("flightId"));
+        assertEquals("12A", message.getMetadata().get("seatNumber"));
+        assertEquals("WAITLIST_SEAT_ASSIGNED", message.getMetadata().get("template"));
     }
 
     @Test
-    void buildSeatAssignmentEmail_ShouldContainAllRelevantDetails() throws Exception {
-        String passengerId = "P123";
-        String flightId = "SK123";
-        String seatNumber = "12A";
-
-        String emailBody = invokePrivateEmailBuilder(
-                "buildSeatAssignmentEmail",
-                passengerId,
-                flightId,
-                seatNumber
+    void sendWaitlistExpirationNotification_ShouldEnqueueExpectedPayload() throws Exception {
+        notificationService.sendWaitlistExpirationNotification(
+                "passenger@example.com",
+                "P999",
+                "SK999",
+                "22B"
         );
 
-        assertFalse(emailBody.isBlank());
-        assertTrue(emailBody.contains(passengerId));
-        assertTrue(emailBody.contains(flightId));
-        assertTrue(emailBody.contains(seatNumber));
-        assertTrue(emailBody.contains("120 seconds"));
-    }
+        ArgumentCaptor<String> payloadCaptor = ArgumentCaptor.forClass(String.class);
+        verify(listOperations).rightPush(eq("notifications:queue-test"), payloadCaptor.capture());
 
-    @Test
-    void buildExpirationEmail_ShouldContainAllRelevantDetails() throws Exception {
-        String passengerId = "P999";
-        String flightId = "SK999";
-        String seatNumber = "22B";
+        String payload = payloadCaptor.getValue();
+        assertNotNull(payload);
 
-        String emailBody = invokePrivateEmailBuilder(
-                "buildExpirationEmail",
-                passengerId,
-                flightId,
-                seatNumber
-        );
-
-        assertFalse(emailBody.isBlank());
-        assertTrue(emailBody.contains(passengerId));
-        assertTrue(emailBody.contains(flightId));
-        assertTrue(emailBody.contains(seatNumber));
-        assertTrue(emailBody.contains("expired"));
-    }
-
-    /**
-     * Helper method to invoke private email builder methods using reflection.
-     */
-    private String invokePrivateEmailBuilder(String methodName,
-                                             String passengerId,
-                                             String flightId,
-                                             String seatNumber) throws Exception {
-        try {
-            Method method = NotificationServiceImpl.class.getDeclaredMethod(
-                    methodName,
-                    String.class,
-                    String.class,
-                    String.class
-            );
-            method.setAccessible(true);
-            Object result = method.invoke(notificationService, passengerId, flightId, seatNumber);
-            return (String) result;
-        } catch (InvocationTargetException e) {
-            throw e;
-        }
+        NotificationMessage message = objectMapper.readValue(payload, NotificationMessage.class);
+        assertEquals(NotificationType.WAITLIST_EXPIRED, message.getType());
+        assertEquals("passenger@example.com", message.getRecipient());
+        Map<String, String> metadata = message.getMetadata();
+        assertEquals("P999", metadata.get("passengerId"));
+        assertEquals("SK999", metadata.get("flightId"));
+        assertEquals("22B", metadata.get("seatNumber"));
+        assertEquals("WAITLIST_SEAT_EXPIRED", metadata.get("template"));
     }
 }
+
 

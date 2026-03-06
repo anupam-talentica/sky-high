@@ -6,21 +6,24 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
 
 @Component
 public class WaitlistEventListener {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(WaitlistEventListener.class);
-    
+
     private final WaitlistService waitlistService;
-    
+
     public WaitlistEventListener(WaitlistService waitlistService) {
         this.waitlistService = waitlistService;
     }
-    
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+
+    /**
+     * Listens for seat release by flight + seat (e.g. when A's hold expires, B on waitlist gets the opportunity).
+     * Uses @EventListener (not @TransactionalEventListener) so the event is received when the scheduler publishes it:
+     * the scheduler's processExpiredSeats() is self-invoked so no transaction is active there, and AFTER_COMMIT would never fire.
+     */
+    @EventListener
     @Async
     public void handleSeatReleased(SeatReleasedEvent event) {
         logger.info("Handling seat released event for seat {} on flight {}", 

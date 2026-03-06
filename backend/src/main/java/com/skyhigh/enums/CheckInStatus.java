@@ -33,7 +33,7 @@ public enum CheckInStatus {
 
         switch (this) {
             case PENDING:
-                return newStatus == BAGGAGE_ADDED || newStatus == CANCELLED;
+                return newStatus == BAGGAGE_ADDED || newStatus == PAYMENT_COMPLETED || newStatus == CANCELLED;
             case BAGGAGE_ADDED:
                 return newStatus == PAYMENT_COMPLETED || newStatus == CANCELLED || newStatus == PENDING;
             case PAYMENT_COMPLETED:

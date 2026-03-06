@@ -1,6 +1,5 @@
 package com.skyhigh.scheduler;
 
-import com.skyhigh.entity.CheckIn;
 import com.skyhigh.entity.Seat;
 import com.skyhigh.enums.CheckInStatus;
 import com.skyhigh.enums.SeatState;
@@ -227,7 +226,8 @@ public class SeatExpirationScheduler {
         
         logger.info("Released expired seat: {} for flight {} (previously held by {})", 
             seatNumber, flightId, previousHolder);
-        
+
+        // Publish event by seat + flight so waitlist listener can assign to next in line (e.g. B who joined waitlist when A had the seat)
         eventPublisher.publishEvent(new SeatReleasedEvent(this, flightId, seatNumber));
         logger.debug("Published SeatReleasedEvent for seat {} on flight {}", seatNumber, flightId);
         

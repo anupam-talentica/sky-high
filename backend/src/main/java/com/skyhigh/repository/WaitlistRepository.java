@@ -51,4 +51,12 @@ public interface WaitlistRepository extends JpaRepository<Waitlist, Long> {
     );
 
     boolean existsByPassengerIdAndFlightIdAndSeatNumber(String passengerId, String flightId, String seatNumber);
+
+    @Query("SELECT w FROM Waitlist w WHERE w.passengerId = :passengerId AND w.flightId = :flightId AND w.seatNumber = :seatNumber AND w.status = :status")
+    Optional<Waitlist> findByPassengerIdAndFlightIdAndSeatNumberAndStatus(
+        @Param("passengerId") String passengerId,
+        @Param("flightId") String flightId,
+        @Param("seatNumber") String seatNumber,
+        @Param("status") WaitlistStatus status
+    );
 }

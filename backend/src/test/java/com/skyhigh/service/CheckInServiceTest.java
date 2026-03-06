@@ -210,7 +210,7 @@ class CheckInServiceTest {
 
         when(checkInRepository.findById(anyString())).thenReturn(Optional.of(checkIn));
         when(seatService.getSeatById(eq(1L))).thenReturn(seat);
-        when(seatService.reserveSeat(eq("SK1234"), eq("12A"), eq("P123456")))
+        when(seatService.reserveSeatForCheckIn(eq("SK1234"), eq("12A"), eq("P123456")))
                 .thenReturn(reservationResponse);
         when(checkInRepository.save(any(CheckIn.class))).thenReturn(checkIn);
 
@@ -221,7 +221,7 @@ class CheckInServiceTest {
         assertEquals("12A", response.getSeatNumber());
 
         verify(seatService).releaseSeat(eq(99L));
-        verify(seatService).reserveSeat(eq("SK1234"), eq("12A"), eq("P123456"));
+        verify(seatService).reserveSeatForCheckIn(eq("SK1234"), eq("12A"), eq("P123456"));
         verify(auditLogService).logStateChange(eq("CheckIn"), eq("CHK-12345678"),
                 contains("seatId"), contains("seatId"), eq("P123456"));
     }
@@ -493,16 +493,25 @@ class CheckInServiceTest {
     }
 
     @Test
-    void confirmCheckIn_WhenNotPaymentCompleted_ShouldThrowException() {
+    void confirmCheckIn_WhenPendingWithNoBaggage_ShouldConfirm() {
         checkIn.setStatus(CheckInStatus.PENDING);
 
         when(checkInRepository.findById(anyString())).thenReturn(Optional.of(checkIn));
+        when(baggageService.getAllBaggageForCheckIn(anyString())).thenReturn(List.of());
+        when(seatService.confirmSeat(anyLong(), anyString())).thenReturn(seat);
+        when(checkInRepository.save(any(CheckIn.class))).thenAnswer(invocation -> {
+            CheckIn savedCheckIn = invocation.getArgument(0);
+            savedCheckIn.setCompletedAt(LocalDateTime.now());
+            return savedCheckIn;
+        });
 
-        assertThrows(InvalidCheckInStateException.class, 
-                    () -> checkInService.confirmCheckIn("CHK-12345678"));
-        
-        verify(seatService, never()).confirmSeat(anyLong(), anyString());
-        verify(checkInRepository, never()).save(any(CheckIn.class));
+        CheckInResponseDTO response = checkInService.confirmCheckIn("CHK-12345678");
+
+        assertNotNull(response);
+        assertEquals(CheckInStatus.COMPLETED, response.getStatus());
+        verify(checkInRepository, atLeast(2)).save(any(CheckIn.class));
+        verify(auditLogService).logStateChange(eq("CheckIn"), eq("CHK-12345678"),
+                anyString(), contains("No baggage added"), eq("P123456"));
     }
 
     @Test

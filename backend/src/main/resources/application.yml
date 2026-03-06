@@ -109,6 +109,10 @@ logging:
     max-size: 10MB
     max-history: 30
 
+notifications:
+  enabled: true
+  queueName: notifications:queue
+
 app:
   redis:
     seat-map-cache-enabled: ${REDIS_SEAT_MAP_CACHE_ENABLED:true}
