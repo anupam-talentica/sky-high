@@ -115,14 +115,13 @@ notifications:
 
 external:
   aviationstack:
-    api-key: ${AVIATIONSTACK_API_KEY:f2c90d3047ee3f0b768a73f82ce5b567}
-    base-url: http://localhost:1080 
-    #http://api.aviationstack.com/v1
+    api-key: ${AVIATIONSTACK_API_KEY:}
+    base-url: ${EXTERNAL_AVIATIONSTACK_BASE_URL:http://api.aviationstack.com/v1}
     timeout: 5000
     enabled: ${AVIATIONSTACK_ENABLED:true}
   weatherapi:
-    api-key: ${WEATHERAPI_API_KEY:09583c8331fa4697a2a63031253112}
-    base-url: https://api.weatherapi.com/v1
+    api-key: ${WEATHERAPI_API_KEY:}
+    base-url: ${EXTERNAL_WEATHERAPI_BASE_URL:https://api.weatherapi.com/v1}
     timeout: 5000
     enabled: ${WEATHERAPI_ENABLED:true}
 

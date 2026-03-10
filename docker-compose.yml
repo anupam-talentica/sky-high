@@ -74,6 +74,10 @@ services:
       AVIATIONSTACK_API_KEY: ${AVIATIONSTACK_API_KEY:-}
       AVIATIONSTACK_ENABLED: ${AVIATIONSTACK_ENABLED:-true}
       EXTERNAL_AVIATIONSTACK_BASE_URL: ${EXTERNAL_AVIATIONSTACK_BASE_URL:-http://mockserver:1080/v1} #http://api.aviationstack.com/v1}
+      # WeatherAPI configuration (API key + optional MockServer base URL override)
+      WEATHERAPI_API_KEY: ${WEATHERAPI_API_KEY:-}
+      WEATHERAPI_ENABLED: ${WEATHERAPI_ENABLED:-true}
+      EXTERNAL_WEATHERAPI_BASE_URL: ${EXTERNAL_WEATHERAPI_BASE_URL:-http://mockserver:1080/v1}
     ports:
       - "8080:8080"
     depends_on:

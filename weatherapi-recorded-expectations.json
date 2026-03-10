@@ -1,0 +1,1046 @@
+[ {
+  "httpRequest" : {
+    "method" : "GET",
+    "path" : "/v1/current.json",
+    "queryStringParameters" : {
+      "q" : [ "40.642334%2C-73.78817" ],
+      "aqi" : [ "no" ]
+    },
+    "headers" : {
+      "content-length" : [ "0" ],
+      "User-Agent" : [ "Java/17.0.18" ],
+      "Host" : [ "mockserver:1080" ],
+      "Connection" : [ "keep-alive" ],
+      "Accept" : [ "application/json, application/*+json" ]
+    },
+    "keepAlive" : true,
+    "secure" : false,
+    "protocol" : "HTTP_1_1",
+    "localAddress" : "172.18.0.3:1080",
+    "remoteAddress" : "172.18.0.5:45992"
+  },
+  "httpResponse" : {
+    "statusCode" : 200,
+    "reasonPhrase" : "OK",
+    "headers" : {
+      "x-weatherapi-qpm-left" : [ "99997" ],
+      "X-Cache" : [ "MISS" ],
+      "Vary" : [ "Accept-Encoding" ],
+      "Server" : [ "BunnyCDN-SG1-869" ],
+      "Date" : [ "Tue, 10 Mar 2026 11:28:10 GMT" ],
+      "Content-Type" : [ "application/json" ],
+      "Cache-Control" : [ "public, max-age=180" ],
+      "CDN-Status" : [ "200" ],
+      "CDN-RequestTime" : [ "0" ],
+      "CDN-RequestPullSuccess" : [ "True" ],
+      "CDN-RequestPullCode" : [ "200" ],
+      "CDN-RequestId" : [ "8f9de269ba527e53b2f97020cd8c368a" ],
+      "CDN-RequestCountryCode" : [ "IN" ],
+      "CDN-PullZone" : [ "93447" ],
+      "CDN-ProxyVer" : [ "1.47" ],
+      "CDN-EdgeStorageId" : [ "1173" ],
+      "CDN-CachedAt" : [ "03/10/2026 11:28:10" ],
+      "CDN-Cache" : [ "MISS" ],
+      "Age" : [ "0" ]
+    },
+    "body" : {
+      "contentType" : "application/json",
+      "type" : "JSON",
+      "json" : {
+        "location" : {
+          "name" : "Cairo",
+          "region" : "Al Qahirah",
+          "country" : "Egypt",
+          "lat" : 30.05,
+          "lon" : 31.25,
+          "tz_id" : "Africa/Cairo",
+          "localtime_epoch" : 1773142108,
+          "localtime" : "2026-03-10 13:28"
+        },
+        "current" : {
+          "last_updated_epoch" : 1773141300,
+          "last_updated" : "2026-03-10 13:15",
+          "temp_c" : 20.0,
+          "temp_f" : 68.0,
+          "is_day" : 1,
+          "condition" : {
+            "text" : "Partly cloudy",
+            "icon" : "//cdn.weatherapi.com/weather/64x64/day/116.png",
+            "code" : 1003
+          },
+          "wind_mph" : 13.9,
+          "wind_kph" : 22.3,
+          "wind_degree" : 50,
+          "wind_dir" : "NE",
+          "pressure_mb" : 1020.0,
+          "pressure_in" : 30.12,
+          "precip_mm" : 0.0,
+          "precip_in" : 0.0,
+          "humidity" : 32,
+          "cloud" : 50,
+          "feelslike_c" : 20.0,
+          "feelslike_f" : 68.0,
+          "windchill_c" : 20.9,
+          "windchill_f" : 69.7,
+          "heatindex_c" : 20.9,
+          "heatindex_f" : 69.7,
+          "dewpoint_c" : -1.2,
+          "dewpoint_f" : 29.9,
+          "vis_km" : 10.0,
+          "vis_miles" : 6.0,
+          "uv" : 5.6,
+          "gust_mph" : 15.9,
+          "gust_kph" : 25.7
+        }
+      },
+      "rawBytes" : "eyJsb2NhdGlvbiI6eyJuYW1lIjoiQ2Fpcm8iLCJyZWdpb24iOiJBbCBRYWhpcmFoIiwiY291bnRyeSI6IkVneXB0IiwibGF0IjozMC4wNSwibG9uIjozMS4yNSwidHpfaWQiOiJBZnJpY2EvQ2Fpcm8iLCJsb2NhbHRpbWVfZXBvY2giOjE3NzMxNDIxMDgsImxvY2FsdGltZSI6IjIwMjYtMDMtMTAgMTM6MjgifSwiY3VycmVudCI6eyJsYXN0X3VwZGF0ZWRfZXBvY2giOjE3NzMxNDEzMDAsImxhc3RfdXBkYXRlZCI6IjIwMjYtMDMtMTAgMTM6MTUiLCJ0ZW1wX2MiOjIwLjAsInRlbXBfZiI6NjguMCwiaXNfZGF5IjoxLCJjb25kaXRpb24iOnsidGV4dCI6IlBhcnRseSBjbG91ZHkiLCJpY29uIjoiLy9jZG4ud2VhdGhlcmFwaS5jb20vd2VhdGhlci82NHg2NC9kYXkvMTE2LnBuZyIsImNvZGUiOjEwMDN9LCJ3aW5kX21waCI6MTMuOSwid2luZF9rcGgiOjIyLjMsIndpbmRfZGVncmVlIjo1MCwid2luZF9kaXIiOiJORSIsInByZXNzdXJlX21iIjoxMDIwLjAsInByZXNzdXJlX2luIjozMC4xMiwicHJlY2lwX21tIjowLjAsInByZWNpcF9pbiI6MC4wLCJodW1pZGl0eSI6MzIsImNsb3VkIjo1MCwiZmVlbHNsaWtlX2MiOjIwLjAsImZlZWxzbGlrZV9mIjo2OC4wLCJ3aW5kY2hpbGxfYyI6MjAuOSwid2luZGNoaWxsX2YiOjY5LjcsImhlYXRpbmRleF9jIjoyMC45LCJoZWF0aW5kZXhfZiI6NjkuNywiZGV3cG9pbnRfYyI6LTEuMiwiZGV3cG9pbnRfZiI6MjkuOSwidmlzX2ttIjoxMC4wLCJ2aXNfbWlsZXMiOjYuMCwidXYiOjUuNiwiZ3VzdF9tcGgiOjE1LjksImd1c3Rfa3BoIjoyNS43fX0="
+    }
+  },
+  "id" : "0a6a6688-ca93-443b-a139-597af1cc6ebf",
+  "priority" : 0,
+  "timeToLive" : {
+    "unlimited" : true
+  },
+  "times" : {
+    "remainingTimes" : 1
+  }
+}, {
+  "httpRequest" : {
+    "method" : "GET",
+    "path" : "/v1/current.json",
+    "queryStringParameters" : {
+      "q" : [ "33.943398%2C-118.40828" ],
+      "aqi" : [ "no" ]
+    },
+    "headers" : {
+      "content-length" : [ "0" ],
+      "User-Agent" : [ "Java/17.0.18" ],
+      "Host" : [ "mockserver:1080" ],
+      "Connection" : [ "keep-alive" ],
+      "Accept" : [ "application/json, application/*+json" ]
+    },
+    "keepAlive" : true,
+    "secure" : false,
+    "protocol" : "HTTP_1_1",
+    "localAddress" : "172.18.0.3:1080",
+    "remoteAddress" : "172.18.0.5:59086"
+  },
+  "httpResponse" : {
+    "statusCode" : 200,
+    "reasonPhrase" : "OK",
+    "headers" : {
+      "x-weatherapi-qpm-left" : [ "99997" ],
+      "X-Cache" : [ "MISS" ],
+      "Vary" : [ "Accept-Encoding" ],
+      "Server" : [ "BunnyCDN-SG1-869" ],
+      "Date" : [ "Tue, 10 Mar 2026 11:28:30 GMT" ],
+      "Content-Type" : [ "application/json" ],
+      "Cache-Control" : [ "public, max-age=180" ],
+      "CDN-Status" : [ "200" ],
+      "CDN-RequestTime" : [ "0" ],
+      "CDN-RequestPullSuccess" : [ "True" ],
+      "CDN-RequestPullCode" : [ "200" ],
+      "CDN-RequestId" : [ "e0963d0fe78dc1ccc108333faf0af78a" ],
+      "CDN-RequestCountryCode" : [ "IN" ],
+      "CDN-PullZone" : [ "93447" ],
+      "CDN-ProxyVer" : [ "1.47" ],
+      "CDN-EdgeStorageId" : [ "988" ],
+      "CDN-CachedAt" : [ "03/10/2026 11:28:30" ],
+      "CDN-Cache" : [ "MISS" ],
+      "Age" : [ "0" ]
+    },
+    "body" : {
+      "contentType" : "application/json",
+      "type" : "JSON",
+      "json" : {
+        "location" : {
+          "name" : "Cairo",
+          "region" : "Al Qahirah",
+          "country" : "Egypt",
+          "lat" : 30.05,
+          "lon" : 31.25,
+          "tz_id" : "Africa/Cairo",
+          "localtime_epoch" : 1773142091,
+          "localtime" : "2026-03-10 13:28"
+        },
+        "current" : {
+          "last_updated_epoch" : 1773141300,
+          "last_updated" : "2026-03-10 13:15",
+          "temp_c" : 20.0,
+          "temp_f" : 68.0,
+          "is_day" : 1,
+          "condition" : {
+            "text" : "Mostly Sunny",
+            "icon" : "//cdn.weatherapi.com/weather/64x64/day/116.png",
+            "code" : 1003
+          },
+          "wind_mph" : 13.9,
+          "wind_kph" : 22.3,
+          "wind_degree" : 50,
+          "wind_dir" : "NE",
+          "pressure_mb" : 1020.0,
+          "pressure_in" : 30.12,
+          "precip_mm" : 0.0,
+          "precip_in" : 0.0,
+          "humidity" : 32,
+          "cloud" : 50,
+          "feelslike_c" : 20.0,
+          "feelslike_f" : 68.0,
+          "windchill_c" : 20.9,
+          "windchill_f" : 69.7,
+          "heatindex_c" : 20.9,
+          "heatindex_f" : 69.7,
+          "dewpoint_c" : -1.2,
+          "dewpoint_f" : 29.9,
+          "vis_km" : 10.0,
+          "vis_miles" : 6.0,
+          "uv" : 5.6,
+          "gust_mph" : 15.9,
+          "gust_kph" : 25.7
+        }
+      },
+      "rawBytes" : "eyJsb2NhdGlvbiI6eyJuYW1lIjoiQ2Fpcm8iLCJyZWdpb24iOiJBbCBRYWhpcmFoIiwiY291bnRyeSI6IkVneXB0IiwibGF0IjozMC4wNSwibG9uIjozMS4yNSwidHpfaWQiOiJBZnJpY2EvQ2Fpcm8iLCJsb2NhbHRpbWVfZXBvY2giOjE3NzMxNDIwOTEsImxvY2FsdGltZSI6IjIwMjYtMDMtMTAgMTM6MjgifSwiY3VycmVudCI6eyJsYXN0X3VwZGF0ZWRfZXBvY2giOjE3NzMxNDEzMDAsImxhc3RfdXBkYXRlZCI6IjIwMjYtMDMtMTAgMTM6MTUiLCJ0ZW1wX2MiOjIwLjAsInRlbXBfZiI6NjguMCwiaXNfZGF5IjoxLCJjb25kaXRpb24iOnsidGV4dCI6IlBhcnRseSBjbG91ZHkiLCJpY29uIjoiLy9jZG4ud2VhdGhlcmFwaS5jb20vd2VhdGhlci82NHg2NC9kYXkvMTE2LnBuZyIsImNvZGUiOjEwMDN9LCJ3aW5kX21waCI6MTMuOSwid2luZF9rcGgiOjIyLjMsIndpbmRfZGVncmVlIjo1MCwid2luZF9kaXIiOiJORSIsInByZXNzdXJlX21iIjoxMDIwLjAsInByZXNzdXJlX2luIjozMC4xMiwicHJlY2lwX21tIjowLjAsInByZWNpcF9pbiI6MC4wLCJodW1pZGl0eSI6MzIsImNsb3VkIjo1MCwiZmVlbHNsaWtlX2MiOjIwLjAsImZlZWxzbGlrZV9mIjo2OC4wLCJ3aW5kY2hpbGxfYyI6MjAuOSwid2luZGNoaWxsX2YiOjY5LjcsImhlYXRpbmRleF9jIjoyMC45LCJoZWF0aW5kZXhfZiI6NjkuNywiZGV3cG9pbnRfYyI6LTEuMiwiZGV3cG9pbnRfZiI6MjkuOSwidmlzX2ttIjoxMC4wLCJ2aXNfbWlsZXMiOjYuMCwidXYiOjUuNiwiZ3VzdF9tcGgiOjE1LjksImd1c3Rfa3BoIjoyNS43fX0="
+    }
+  },
+  "id" : "b178dd0e-7fde-4f58-9614-ebbd72c387cc",
+  "priority" : 0,
+  "timeToLive" : {
+    "unlimited" : true
+  },
+  "times" : {
+    "remainingTimes" : 1
+  }
+}, {
+  "httpRequest" : {
+    "method" : "GET",
+    "path" : "/v1/current.json",
+    "queryStringParameters" : {
+      "q" : [ "40.642334%2C-73.78817" ],
+      "aqi" : [ "no" ]
+    },
+    "headers" : {
+      "content-length" : [ "0" ],
+      "User-Agent" : [ "Java/17.0.18" ],
+      "Host" : [ "mockserver:1080" ],
+      "Connection" : [ "keep-alive" ],
+      "Accept" : [ "application/json, application/*+json" ]
+    },
+    "keepAlive" : true,
+    "secure" : false,
+    "protocol" : "HTTP_1_1",
+    "localAddress" : "172.18.0.3:1080",
+    "remoteAddress" : "172.18.0.5:34288"
+  },
+  "httpResponse" : {
+    "statusCode" : 200,
+    "reasonPhrase" : "OK",
+    "headers" : {
+      "x-weatherapi-qpm-left" : [ "99997" ],
+      "X-Cache" : [ "MISS" ],
+      "Vary" : [ "Accept-Encoding" ],
+      "Server" : [ "BunnyCDN-SG1-945" ],
+      "Date" : [ "Tue, 10 Mar 2026 11:30:11 GMT" ],
+      "Content-Type" : [ "application/json" ],
+      "Cache-Control" : [ "public, max-age=180" ],
+      "CDN-Status" : [ "200" ],
+      "CDN-RequestTime" : [ "0" ],
+      "CDN-RequestPullSuccess" : [ "True" ],
+      "CDN-RequestPullCode" : [ "200" ],
+      "CDN-RequestId" : [ "b69869ef4da52499be5e4c75062cd6a4" ],
+      "CDN-RequestCountryCode" : [ "IN" ],
+      "CDN-PullZone" : [ "93447" ],
+      "CDN-ProxyVer" : [ "1.47" ],
+      "CDN-EdgeStorageId" : [ "1173" ],
+      "CDN-CachedAt" : [ "03/10/2026 11:28:10" ],
+      "CDN-Cache" : [ "HIT" ],
+      "Age" : [ "0" ]
+    },
+    "body" : {
+      "contentType" : "application/json",
+      "type" : "JSON",
+      "json" : {
+        "location" : {
+          "name" : "Cairo",
+          "region" : "Al Qahirah",
+          "country" : "Egypt",
+          "lat" : 30.05,
+          "lon" : 31.25,
+          "tz_id" : "Africa/Cairo",
+          "localtime_epoch" : 1773142108,
+          "localtime" : "2026-03-10 13:28"
+        },
+        "current" : {
+          "last_updated_epoch" : 1773141300,
+          "last_updated" : "2026-03-10 13:15",
+          "temp_c" : 20.0,
+          "temp_f" : 68.0,
+          "is_day" : 1,
+          "condition" : {
+            "text" : "Partly Windy",
+            "icon" : "//cdn.weatherapi.com/weather/64x64/day/116.png",
+            "code" : 1003
+          },
+          "wind_mph" : 13.9,
+          "wind_kph" : 22.3,
+          "wind_degree" : 50,
+          "wind_dir" : "NE",
+          "pressure_mb" : 1020.0,
+          "pressure_in" : 30.12,
+          "precip_mm" : 0.0,
+          "precip_in" : 0.0,
+          "humidity" : 32,
+          "cloud" : 50,
+          "feelslike_c" : 20.0,
+          "feelslike_f" : 68.0,
+          "windchill_c" : 20.9,
+          "windchill_f" : 69.7,
+          "heatindex_c" : 20.9,
+          "heatindex_f" : 69.7,
+          "dewpoint_c" : -1.2,
+          "dewpoint_f" : 29.9,
+          "vis_km" : 10.0,
+          "vis_miles" : 6.0,
+          "uv" : 5.6,
+          "gust_mph" : 15.9,
+          "gust_kph" : 25.7
+        }
+      },
+      "rawBytes" : "eyJsb2NhdGlvbiI6eyJuYW1lIjoiQ2Fpcm8iLCJyZWdpb24iOiJBbCBRYWhpcmFoIiwiY291bnRyeSI6IkVneXB0IiwibGF0IjozMC4wNSwibG9uIjozMS4yNSwidHpfaWQiOiJBZnJpY2EvQ2Fpcm8iLCJsb2NhbHRpbWVfZXBvY2giOjE3NzMxNDIxMDgsImxvY2FsdGltZSI6IjIwMjYtMDMtMTAgMTM6MjgifSwiY3VycmVudCI6eyJsYXN0X3VwZGF0ZWRfZXBvY2giOjE3NzMxNDEzMDAsImxhc3RfdXBkYXRlZCI6IjIwMjYtMDMtMTAgMTM6MTUiLCJ0ZW1wX2MiOjIwLjAsInRlbXBfZiI6NjguMCwiaXNfZGF5IjoxLCJjb25kaXRpb24iOnsidGV4dCI6IlBhcnRseSBjbG91ZHkiLCJpY29uIjoiLy9jZG4ud2VhdGhlcmFwaS5jb20vd2VhdGhlci82NHg2NC9kYXkvMTE2LnBuZyIsImNvZGUiOjEwMDN9LCJ3aW5kX21waCI6MTMuOSwid2luZF9rcGgiOjIyLjMsIndpbmRfZGVncmVlIjo1MCwid2luZF9kaXIiOiJORSIsInByZXNzdXJlX21iIjoxMDIwLjAsInByZXNzdXJlX2luIjozMC4xMiwicHJlY2lwX21tIjowLjAsInByZWNpcF9pbiI6MC4wLCJodW1pZGl0eSI6MzIsImNsb3VkIjo1MCwiZmVlbHNsaWtlX2MiOjIwLjAsImZlZWxzbGlrZV9mIjo2OC4wLCJ3aW5kY2hpbGxfYyI6MjAuOSwid2luZGNoaWxsX2YiOjY5LjcsImhlYXRpbmRleF9jIjoyMC45LCJoZWF0aW5kZXhfZiI6NjkuNywiZGV3cG9pbnRfYyI6LTEuMiwiZGV3cG9pbnRfZiI6MjkuOSwidmlzX2ttIjoxMC4wLCJ2aXNfbWlsZXMiOjYuMCwidXYiOjUuNiwiZ3VzdF9tcGgiOjE1LjksImd1c3Rfa3BoIjoyNS43fX0="
+    }
+  },
+  "id" : "4f096db2-26fa-44ad-8059-412c3c0c7e41",
+  "priority" : 0,
+  "timeToLive" : {
+    "unlimited" : true
+  },
+  "times" : {
+    "remainingTimes" : 1
+  }
+}, {
+  "httpRequest" : {
+    "method" : "GET",
+    "path" : "/v1/current.json",
+    "queryStringParameters" : {
+      "q" : [ "47.44384%2C-122.301735" ],
+      "aqi" : [ "no" ]
+    },
+    "headers" : {
+      "content-length" : [ "0" ],
+      "User-Agent" : [ "Java/17.0.18" ],
+      "Host" : [ "mockserver:1080" ],
+      "Connection" : [ "keep-alive" ],
+      "Accept" : [ "application/json, application/*+json" ]
+    },
+    "keepAlive" : true,
+    "secure" : false,
+    "protocol" : "HTTP_1_1",
+    "localAddress" : "172.18.0.3:1080",
+    "remoteAddress" : "172.18.0.5:44188"
+  },
+  "httpResponse" : {
+    "statusCode" : 200,
+    "reasonPhrase" : "OK",
+    "headers" : {
+      "x-weatherapi-qpm-left" : [ "99997" ],
+      "X-Cache" : [ "MISS" ],
+      "Vary" : [ "Accept-Encoding" ],
+      "Server" : [ "BunnyCDN-SG1-945" ],
+      "Date" : [ "Tue, 10 Mar 2026 11:30:41 GMT" ],
+      "Content-Type" : [ "application/json" ],
+      "Cache-Control" : [ "public, max-age=180" ],
+      "CDN-Status" : [ "200" ],
+      "CDN-RequestTime" : [ "0" ],
+      "CDN-RequestPullSuccess" : [ "True" ],
+      "CDN-RequestPullCode" : [ "200" ],
+      "CDN-RequestId" : [ "55e5fb6eb6511a314313ce8fd7ca532f" ],
+      "CDN-RequestCountryCode" : [ "IN" ],
+      "CDN-PullZone" : [ "93447" ],
+      "CDN-ProxyVer" : [ "1.47" ],
+      "CDN-EdgeStorageId" : [ "979" ],
+      "CDN-CachedAt" : [ "03/10/2026 11:30:41" ],
+      "CDN-Cache" : [ "MISS" ],
+      "Age" : [ "0" ]
+    },
+    "body" : {
+      "contentType" : "application/json",
+      "type" : "JSON",
+      "json" : {
+        "location" : {
+          "name" : "Cairo",
+          "region" : "Al Qahirah",
+          "country" : "Egypt",
+          "lat" : 30.05,
+          "lon" : 31.25,
+          "tz_id" : "Africa/Cairo",
+          "localtime_epoch" : 1773142222,
+          "localtime" : "2026-03-10 13:30"
+        },
+        "current" : {
+          "last_updated_epoch" : 1773141300,
+          "last_updated" : "2026-03-10 13:15",
+          "temp_c" : 20.0,
+          "temp_f" : 68.0,
+          "is_day" : 1,
+          "condition" : {
+            "text" : "Partly snowy",
+            "icon" : "//cdn.weatherapi.com/weather/64x64/day/116.png",
+            "code" : 1003
+          },
+          "wind_mph" : 13.9,
+          "wind_kph" : 22.3,
+          "wind_degree" : 50,
+          "wind_dir" : "NE",
+          "pressure_mb" : 1020.0,
+          "pressure_in" : 30.12,
+          "precip_mm" : 0.0,
+          "precip_in" : 0.0,
+          "humidity" : 32,
+          "cloud" : 50,
+          "feelslike_c" : 20.0,
+          "feelslike_f" : 68.0,
+          "windchill_c" : 20.9,
+          "windchill_f" : 69.7,
+          "heatindex_c" : 20.9,
+          "heatindex_f" : 69.7,
+          "dewpoint_c" : -1.2,
+          "dewpoint_f" : 29.9,
+          "vis_km" : 10.0,
+          "vis_miles" : 6.0,
+          "uv" : 5.6,
+          "gust_mph" : 15.9,
+          "gust_kph" : 25.7
+        }
+      },
+      "rawBytes" : "eyJsb2NhdGlvbiI6eyJuYW1lIjoiQ2Fpcm8iLCJyZWdpb24iOiJBbCBRYWhpcmFoIiwiY291bnRyeSI6IkVneXB0IiwibGF0IjozMC4wNSwibG9uIjozMS4yNSwidHpfaWQiOiJBZnJpY2EvQ2Fpcm8iLCJsb2NhbHRpbWVfZXBvY2giOjE3NzMxNDIyMjIsImxvY2FsdGltZSI6IjIwMjYtMDMtMTAgMTM6MzAifSwiY3VycmVudCI6eyJsYXN0X3VwZGF0ZWRfZXBvY2giOjE3NzMxNDEzMDAsImxhc3RfdXBkYXRlZCI6IjIwMjYtMDMtMTAgMTM6MTUiLCJ0ZW1wX2MiOjIwLjAsInRlbXBfZiI6NjguMCwiaXNfZGF5IjoxLCJjb25kaXRpb24iOnsidGV4dCI6IlBhcnRseSBjbG91ZHkiLCJpY29uIjoiLy9jZG4ud2VhdGhlcmFwaS5jb20vd2VhdGhlci82NHg2NC9kYXkvMTE2LnBuZyIsImNvZGUiOjEwMDN9LCJ3aW5kX21waCI6MTMuOSwid2luZF9rcGgiOjIyLjMsIndpbmRfZGVncmVlIjo1MCwid2luZF9kaXIiOiJORSIsInByZXNzdXJlX21iIjoxMDIwLjAsInByZXNzdXJlX2luIjozMC4xMiwicHJlY2lwX21tIjowLjAsInByZWNpcF9pbiI6MC4wLCJodW1pZGl0eSI6MzIsImNsb3VkIjo1MCwiZmVlbHNsaWtlX2MiOjIwLjAsImZlZWxzbGlrZV9mIjo2OC4wLCJ3aW5kY2hpbGxfYyI6MjAuOSwid2luZGNoaWxsX2YiOjY5LjcsImhlYXRpbmRleF9jIjoyMC45LCJoZWF0aW5kZXhfZiI6NjkuNywiZGV3cG9pbnRfYyI6LTEuMiwiZGV3cG9pbnRfZiI6MjkuOSwidmlzX2ttIjoxMC4wLCJ2aXNfbWlsZXMiOjYuMCwidXYiOjUuNiwiZ3VzdF9tcGgiOjE1LjksImd1c3Rfa3BoIjoyNS43fX0="
+    }
+  },
+  "id" : "40707060-6587-4f4d-ada3-1b3e759f9c1e",
+  "priority" : 0,
+  "timeToLive" : {
+    "unlimited" : true
+  },
+  "times" : {
+    "remainingTimes" : 1
+  }
+}, {
+  "httpRequest" : {
+    "method" : "GET",
+    "path" : "/v1/current.json",
+    "queryStringParameters" : {
+      "q" : [ "47.44384%2C-122.301735" ],
+      "aqi" : [ "no" ]
+    },
+    "headers" : {
+      "content-length" : [ "0" ],
+      "User-Agent" : [ "Java/17.0.18" ],
+      "Host" : [ "mockserver:1080" ],
+      "Connection" : [ "keep-alive" ],
+      "Accept" : [ "application/json, application/*+json" ]
+    },
+    "keepAlive" : true,
+    "secure" : false,
+    "protocol" : "HTTP_1_1",
+    "localAddress" : "172.18.0.3:1080",
+    "remoteAddress" : "172.18.0.5:35708"
+  },
+  "httpResponse" : {
+    "statusCode" : 200,
+    "reasonPhrase" : "OK",
+    "headers" : {
+      "x-weatherapi-qpm-left" : [ "99997" ],
+      "X-Cache" : [ "MISS" ],
+      "Vary" : [ "Accept-Encoding" ],
+      "Server" : [ "BunnyCDN-SG1-749" ],
+      "Date" : [ "Tue, 10 Mar 2026 11:31:44 GMT" ],
+      "Content-Type" : [ "application/json" ],
+      "Cache-Control" : [ "public, max-age=180" ],
+      "CDN-Status" : [ "200" ],
+      "CDN-RequestTime" : [ "0" ],
+      "CDN-RequestPullSuccess" : [ "True" ],
+      "CDN-RequestPullCode" : [ "200" ],
+      "CDN-RequestId" : [ "0f512873a1135fbc2f5948038c24fb56" ],
+      "CDN-RequestCountryCode" : [ "IN" ],
+      "CDN-PullZone" : [ "93447" ],
+      "CDN-ProxyVer" : [ "1.47" ],
+      "CDN-EdgeStorageId" : [ "979" ],
+      "CDN-CachedAt" : [ "03/10/2026 11:30:41" ],
+      "CDN-Cache" : [ "HIT" ],
+      "Age" : [ "0" ]
+    },
+    "body" : {
+      "contentType" : "application/json",
+      "type" : "JSON",
+      "json" : {
+        "location" : {
+          "name" : "Cairo",
+          "region" : "Al Qahirah",
+          "country" : "Egypt",
+          "lat" : 30.05,
+          "lon" : 31.25,
+          "tz_id" : "Africa/Cairo",
+          "localtime_epoch" : 1773142222,
+          "localtime" : "2026-03-10 13:30"
+        },
+        "current" : {
+          "last_updated_epoch" : 1773141300,
+          "last_updated" : "2026-03-10 13:15",
+          "temp_c" : 20.0,
+          "temp_f" : 68.0,
+          "is_day" : 1,
+          "condition" : {
+            "text" : "Mostly Dry",
+            "icon" : "//cdn.weatherapi.com/weather/64x64/day/116.png",
+            "code" : 1003
+          },
+          "wind_mph" : 13.9,
+          "wind_kph" : 22.3,
+          "wind_degree" : 50,
+          "wind_dir" : "NE",
+          "pressure_mb" : 1020.0,
+          "pressure_in" : 30.12,
+          "precip_mm" : 0.0,
+          "precip_in" : 0.0,
+          "humidity" : 32,
+          "cloud" : 50,
+          "feelslike_c" : 20.0,
+          "feelslike_f" : 68.0,
+          "windchill_c" : 20.9,
+          "windchill_f" : 69.7,
+          "heatindex_c" : 20.9,
+          "heatindex_f" : 69.7,
+          "dewpoint_c" : -1.2,
+          "dewpoint_f" : 29.9,
+          "vis_km" : 10.0,
+          "vis_miles" : 6.0,
+          "uv" : 5.6,
+          "gust_mph" : 15.9,
+          "gust_kph" : 25.7
+        }
+      },
+      "rawBytes" : "eyJsb2NhdGlvbiI6eyJuYW1lIjoiQ2Fpcm8iLCJyZWdpb24iOiJBbCBRYWhpcmFoIiwiY291bnRyeSI6IkVneXB0IiwibGF0IjozMC4wNSwibG9uIjozMS4yNSwidHpfaWQiOiJBZnJpY2EvQ2Fpcm8iLCJsb2NhbHRpbWVfZXBvY2giOjE3NzMxNDIyMjIsImxvY2FsdGltZSI6IjIwMjYtMDMtMTAgMTM6MzAifSwiY3VycmVudCI6eyJsYXN0X3VwZGF0ZWRfZXBvY2giOjE3NzMxNDEzMDAsImxhc3RfdXBkYXRlZCI6IjIwMjYtMDMtMTAgMTM6MTUiLCJ0ZW1wX2MiOjIwLjAsInRlbXBfZiI6NjguMCwiaXNfZGF5IjoxLCJjb25kaXRpb24iOnsidGV4dCI6IlBhcnRseSBjbG91ZHkiLCJpY29uIjoiLy9jZG4ud2VhdGhlcmFwaS5jb20vd2VhdGhlci82NHg2NC9kYXkvMTE2LnBuZyIsImNvZGUiOjEwMDN9LCJ3aW5kX21waCI6MTMuOSwid2luZF9rcGgiOjIyLjMsIndpbmRfZGVncmVlIjo1MCwid2luZF9kaXIiOiJORSIsInByZXNzdXJlX21iIjoxMDIwLjAsInByZXNzdXJlX2luIjozMC4xMiwicHJlY2lwX21tIjowLjAsInByZWNpcF9pbiI6MC4wLCJodW1pZGl0eSI6MzIsImNsb3VkIjo1MCwiZmVlbHNsaWtlX2MiOjIwLjAsImZlZWxzbGlrZV9mIjo2OC4wLCJ3aW5kY2hpbGxfYyI6MjAuOSwid2luZGNoaWxsX2YiOjY5LjcsImhlYXRpbmRleF9jIjoyMC45LCJoZWF0aW5kZXhfZiI6NjkuNywiZGV3cG9pbnRfYyI6LTEuMiwiZGV3cG9pbnRfZiI6MjkuOSwidmlzX2ttIjoxMC4wLCJ2aXNfbWlsZXMiOjYuMCwidXYiOjUuNiwiZ3VzdF9tcGgiOjE1LjksImd1c3Rfa3BoIjoyNS43fX0="
+    }
+  },
+  "id" : "58d945d4-f4f3-414d-8af2-1021ccb5e107",
+  "priority" : 0,
+  "timeToLive" : {
+    "unlimited" : true
+  },
+  "times" : {
+    "remainingTimes" : 1
+  }
+}, {
+  "httpRequest" : {
+    "method" : "GET",
+    "path" : "/v1/current.json",
+    "queryStringParameters" : {
+      "q" : [ "40.642334%2C-73.78817" ],
+      "key" : [ "123" ],
+      "aqi" : [ "no" ]
+    },
+    "headers" : {
+      "content-length" : [ "0" ],
+      "User-Agent" : [ "Java/17.0.18" ],
+      "Host" : [ "mockserver:1080" ],
+      "Connection" : [ "keep-alive" ],
+      "Accept" : [ "application/json, application/*+json" ]
+    },
+    "keepAlive" : true,
+    "secure" : false,
+    "protocol" : "HTTP_1_1",
+    "localAddress" : "172.18.0.3:1080",
+    "remoteAddress" : "172.18.0.5:47544"
+  },
+  "httpResponse" : {
+    "statusCode" : 401,
+    "reasonPhrase" : "Unauthorized",
+    "headers" : {
+      "X-Cache" : [ "MISS" ],
+      "Vary" : [ "Accept-Encoding" ],
+      "Server" : [ "BunnyCDN-SG1-1174" ],
+      "Date" : [ "Tue, 10 Mar 2026 11:33:44 GMT" ],
+      "Content-Type" : [ "application/json" ],
+      "Cache-Control" : [ "no-cache" ],
+      "CDN-Status" : [ "401" ],
+      "CDN-RequestTime" : [ "0" ],
+      "CDN-RequestPullSuccess" : [ "True" ],
+      "CDN-RequestPullCode" : [ "401" ],
+      "CDN-RequestId" : [ "58ddf6e57da1576191f47f80e9f5543b" ],
+      "CDN-RequestCountryCode" : [ "IN" ],
+      "CDN-PullZone" : [ "93447" ],
+      "CDN-ProxyVer" : [ "1.47" ],
+      "CDN-EdgeStorageId" : [ "869" ],
+      "CDN-CachedAt" : [ "03/10/2026 11:33:44" ],
+      "CDN-Cache" : [ "MISS" ],
+      "Age" : [ "0" ]
+    },
+    "body" : {
+      "contentType" : "application/json",
+      "type" : "JSON",
+      "json" : {
+        "error" : {
+          "code" : 2006,
+          "message" : "API key is invalid."
+        }
+      },
+      "rawBytes" : "eyJlcnJvciI6eyJjb2RlIjoyMDA2LCJtZXNzYWdlIjoiQVBJIGtleSBpcyBpbnZhbGlkLiJ9fQ=="
+    }
+  },
+  "id" : "0adfea87-7505-46de-99e2-b24882bc6d7b",
+  "priority" : 0,
+  "timeToLive" : {
+    "unlimited" : true
+  },
+  "times" : {
+    "remainingTimes" : 1
+  }
+}, {
+  "httpRequest" : {
+    "method" : "GET",
+    "path" : "/v1/current.json",
+    "queryStringParameters" : {
+      "q" : [ "47.44384%2C-122.301735" ],
+      "key" : [ "123" ],
+      "aqi" : [ "no" ]
+    },
+    "headers" : {
+      "content-length" : [ "0" ],
+      "User-Agent" : [ "Java/17.0.18" ],
+      "Host" : [ "mockserver:1080" ],
+      "Connection" : [ "keep-alive" ],
+      "Accept" : [ "application/json, application/*+json" ]
+    },
+    "keepAlive" : true,
+    "secure" : false,
+    "protocol" : "HTTP_1_1",
+    "localAddress" : "172.18.0.3:1080",
+    "remoteAddress" : "172.18.0.5:37614"
+  },
+  "httpResponse" : {
+    "statusCode" : 401,
+    "reasonPhrase" : "Unauthorized",
+    "headers" : {
+      "X-Cache" : [ "MISS" ],
+      "Vary" : [ "Accept-Encoding" ],
+      "Server" : [ "BunnyCDN-SG1-1174" ],
+      "Date" : [ "Tue, 10 Mar 2026 11:46:01 GMT" ],
+      "Content-Type" : [ "application/json" ],
+      "Cache-Control" : [ "no-cache" ],
+      "CDN-Status" : [ "401" ],
+      "CDN-RequestTime" : [ "0" ],
+      "CDN-RequestPullSuccess" : [ "True" ],
+      "CDN-RequestPullCode" : [ "401" ],
+      "CDN-RequestId" : [ "a34d7df1b88c87e1e61bd7802488c488" ],
+      "CDN-RequestCountryCode" : [ "IN" ],
+      "CDN-PullZone" : [ "93447" ],
+      "CDN-ProxyVer" : [ "1.47" ],
+      "CDN-EdgeStorageId" : [ "944" ],
+      "CDN-CachedAt" : [ "03/10/2026 11:46:01" ],
+      "CDN-Cache" : [ "MISS" ],
+      "Age" : [ "0" ]
+    },
+    "body" : {
+      "contentType" : "application/json",
+      "type" : "JSON",
+      "json" : {
+        "error" : {
+          "code" : 2006,
+          "message" : "API key is invalid."
+        }
+      },
+      "rawBytes" : "eyJlcnJvciI6eyJjb2RlIjoyMDA2LCJtZXNzYWdlIjoiQVBJIGtleSBpcyBpbnZhbGlkLiJ9fQ=="
+    }
+  },
+  "id" : "647653c2-d36a-469e-b4e5-2c285936ed4c",
+  "priority" : 0,
+  "timeToLive" : {
+    "unlimited" : true
+  },
+  "times" : {
+    "remainingTimes" : 1
+  }
+}, {
+  "httpRequest" : {
+    "method" : "GET",
+    "path" : "/v1/current.json",
+    "queryStringParameters" : {
+      "q" : [ "47.44384%2C-122.301735" ],
+      "key" : [ "123" ],
+      "aqi" : [ "no" ]
+    },
+    "headers" : {
+      "content-length" : [ "0" ],
+      "User-Agent" : [ "Java/17.0.18" ],
+      "Host" : [ "mockserver:1080" ],
+      "Connection" : [ "keep-alive" ],
+      "Accept" : [ "application/json, application/*+json" ]
+    },
+    "keepAlive" : true,
+    "secure" : false,
+    "protocol" : "HTTP_1_1",
+    "localAddress" : "172.18.0.3:1080",
+    "remoteAddress" : "172.18.0.5:42186"
+  },
+  "httpResponse" : {
+    "statusCode" : 401,
+    "reasonPhrase" : "Unauthorized",
+    "headers" : {
+      "X-Cache" : [ "MISS" ],
+      "Vary" : [ "Accept-Encoding" ],
+      "Server" : [ "BunnyCDN-SG1-977" ],
+      "Date" : [ "Tue, 10 Mar 2026 11:47:55 GMT" ],
+      "Content-Type" : [ "application/json" ],
+      "Cache-Control" : [ "no-cache" ],
+      "CDN-Status" : [ "401" ],
+      "CDN-RequestTime" : [ "0" ],
+      "CDN-RequestPullSuccess" : [ "True" ],
+      "CDN-RequestPullCode" : [ "401" ],
+      "CDN-RequestId" : [ "d1113e6699cd24d45aabfff0477b334b" ],
+      "CDN-RequestCountryCode" : [ "IN" ],
+      "CDN-PullZone" : [ "93447" ],
+      "CDN-ProxyVer" : [ "1.47" ],
+      "CDN-EdgeStorageId" : [ "944" ],
+      "CDN-CachedAt" : [ "03/10/2026 11:47:54" ],
+      "CDN-Cache" : [ "MISS" ],
+      "Age" : [ "0" ]
+    },
+    "body" : {
+      "contentType" : "application/json",
+      "type" : "JSON",
+      "json" : {
+        "error" : {
+          "code" : 2006,
+          "message" : "API key is invalid."
+        }
+      },
+      "rawBytes" : "eyJlcnJvciI6eyJjb2RlIjoyMDA2LCJtZXNzYWdlIjoiQVBJIGtleSBpcyBpbnZhbGlkLiJ9fQ=="
+    }
+  },
+  "id" : "a4dffb14-5f34-432a-bc5b-543b7939b54b",
+  "priority" : 0,
+  "timeToLive" : {
+    "unlimited" : true
+  },
+  "times" : {
+    "remainingTimes" : 1
+  }
+}, {
+  "httpRequest" : {
+    "method" : "GET",
+    "path" : "/v1/current.json",
+    "queryStringParameters" : {
+      "q" : [ "47.44384%2C-122.301735" ],
+      "key" : [ "09583c8331fa4697a2a63031253112" ],
+      "aqi" : [ "no" ]
+    },
+    "headers" : {
+      "content-length" : [ "0" ],
+      "User-Agent" : [ "Java/17.0.18" ],
+      "Host" : [ "mockserver:1080" ],
+      "Connection" : [ "keep-alive" ],
+      "Accept" : [ "application/json, application/*+json" ]
+    },
+    "keepAlive" : true,
+    "secure" : false,
+    "protocol" : "HTTP_1_1",
+    "localAddress" : "172.18.0.3:1080",
+    "remoteAddress" : "172.18.0.5:37336"
+  },
+  "httpResponse" : {
+    "statusCode" : 200,
+    "reasonPhrase" : "OK",
+    "headers" : {
+      "x-weatherapi-qpm-left" : [ "99994" ],
+      "X-Cache" : [ "MISS" ],
+      "Vary" : [ "Accept-Encoding" ],
+      "Server" : [ "BunnyCDN-SG1-979" ],
+      "Date" : [ "Tue, 10 Mar 2026 11:48:54 GMT" ],
+      "Content-Type" : [ "application/json" ],
+      "Cache-Control" : [ "public, max-age=180" ],
+      "CDN-Status" : [ "200" ],
+      "CDN-RequestTime" : [ "0" ],
+      "CDN-RequestPullSuccess" : [ "True" ],
+      "CDN-RequestPullCode" : [ "200" ],
+      "CDN-RequestId" : [ "e1f15f7fd762926ac183572afc5163c5" ],
+      "CDN-RequestCountryCode" : [ "IN" ],
+      "CDN-PullZone" : [ "93447" ],
+      "CDN-ProxyVer" : [ "1.47" ],
+      "CDN-EdgeStorageId" : [ "979" ],
+      "CDN-CachedAt" : [ "03/10/2026 11:48:54" ],
+      "CDN-Cache" : [ "EXPIRED" ],
+      "Age" : [ "0" ]
+    },
+    "body" : {
+      "contentType" : "application/json",
+      "type" : "JSON",
+      "json" : {
+        "location" : {
+          "name" : "Cairo",
+          "region" : "Al Qahirah",
+          "country" : "Egypt",
+          "lat" : 30.05,
+          "lon" : 31.25,
+          "tz_id" : "Africa/Cairo",
+          "localtime_epoch" : 1773143353,
+          "localtime" : "2026-03-10 13:49"
+        },
+        "current" : {
+          "last_updated_epoch" : 1773143100,
+          "last_updated" : "2026-03-10 13:45",
+          "temp_c" : 20.4,
+          "temp_f" : 68.7,
+          "is_day" : 1,
+          "condition" : {
+            "text" : "Partly snowy",
+            "icon" : "//cdn.weatherapi.com/weather/64x64/day/116.png",
+            "code" : 1003
+          },
+          "wind_mph" : 13.9,
+          "wind_kph" : 22.3,
+          "wind_degree" : 50,
+          "wind_dir" : "NE",
+          "pressure_mb" : 1020.0,
+          "pressure_in" : 30.12,
+          "precip_mm" : 0.0,
+          "precip_in" : 0.0,
+          "humidity" : 32,
+          "cloud" : 50,
+          "feelslike_c" : 20.4,
+          "feelslike_f" : 68.7,
+          "windchill_c" : 20.9,
+          "windchill_f" : 69.7,
+          "heatindex_c" : 20.9,
+          "heatindex_f" : 69.7,
+          "dewpoint_c" : -1.2,
+          "dewpoint_f" : 29.9,
+          "vis_km" : 10.0,
+          "vis_miles" : 6.0,
+          "uv" : 5.6,
+          "gust_mph" : 15.9,
+          "gust_kph" : 25.7
+        }
+      },
+      "rawBytes" : "eyJsb2NhdGlvbiI6eyJuYW1lIjoiQ2Fpcm8iLCJyZWdpb24iOiJBbCBRYWhpcmFoIiwiY291bnRyeSI6IkVneXB0IiwibGF0IjozMC4wNSwibG9uIjozMS4yNSwidHpfaWQiOiJBZnJpY2EvQ2Fpcm8iLCJsb2NhbHRpbWVfZXBvY2giOjE3NzMxNDMzNTMsImxvY2FsdGltZSI6IjIwMjYtMDMtMTAgMTM6NDkifSwiY3VycmVudCI6eyJsYXN0X3VwZGF0ZWRfZXBvY2giOjE3NzMxNDMxMDAsImxhc3RfdXBkYXRlZCI6IjIwMjYtMDMtMTAgMTM6NDUiLCJ0ZW1wX2MiOjIwLjQsInRlbXBfZiI6NjguNywiaXNfZGF5IjoxLCJjb25kaXRpb24iOnsidGV4dCI6IlBhcnRseSBjbG91ZHkiLCJpY29uIjoiLy9jZG4ud2VhdGhlcmFwaS5jb20vd2VhdGhlci82NHg2NC9kYXkvMTE2LnBuZyIsImNvZGUiOjEwMDN9LCJ3aW5kX21waCI6MTMuOSwid2luZF9rcGgiOjIyLjMsIndpbmRfZGVncmVlIjo1MCwid2luZF9kaXIiOiJORSIsInByZXNzdXJlX21iIjoxMDIwLjAsInByZXNzdXJlX2luIjozMC4xMiwicHJlY2lwX21tIjowLjAsInByZWNpcF9pbiI6MC4wLCJodW1pZGl0eSI6MzIsImNsb3VkIjo1MCwiZmVlbHNsaWtlX2MiOjIwLjQsImZlZWxzbGlrZV9mIjo2OC43LCJ3aW5kY2hpbGxfYyI6MjAuOSwid2luZGNoaWxsX2YiOjY5LjcsImhlYXRpbmRleF9jIjoyMC45LCJoZWF0aW5kZXhfZiI6NjkuNywiZGV3cG9pbnRfYyI6LTEuMiwiZGV3cG9pbnRfZiI6MjkuOSwidmlzX2ttIjoxMC4wLCJ2aXNfbWlsZXMiOjYuMCwidXYiOjUuNiwiZ3VzdF9tcGgiOjE1LjksImd1c3Rfa3BoIjoyNS43fX0="
+    }
+  },
+  "id" : "fc503beb-329d-41f7-8bb5-7d4bea7b8842",
+  "priority" : 0,
+  "timeToLive" : {
+    "unlimited" : true
+  },
+  "times" : {
+    "remainingTimes" : 1
+  }
+}, {
+  "httpRequest" : {
+    "method" : "GET",
+    "path" : "/v1/current.json",
+    "queryStringParameters" : {
+      "q" : [ "40.642334%2C-73.78817" ],
+      "aqi" : [ "no" ]
+    },
+    "headers" : {
+      "content-length" : [ "0" ],
+      "User-Agent" : [ "Java/17.0.18" ],
+      "Host" : [ "mockserver:1080" ],
+      "Connection" : [ "keep-alive" ],
+      "Accept" : [ "application/json, application/*+json" ]
+    },
+    "keepAlive" : true,
+    "secure" : false,
+    "protocol" : "HTTP_1_1",
+    "localAddress" : "172.18.0.3:1080",
+    "remoteAddress" : "172.18.0.5:42050"
+  },
+  "httpResponse" : {
+    "statusCode" : 200,
+    "reasonPhrase" : "OK",
+    "headers" : {
+      "x-weatherapi-qpm-left" : [ "99994" ],
+      "X-Cache" : [ "MISS" ],
+      "Vary" : [ "Accept-Encoding" ],
+      "Server" : [ "BunnyCDN-SG1-714" ],
+      "Date" : [ "Tue, 10 Mar 2026 11:57:31 GMT" ],
+      "Content-Type" : [ "application/json" ],
+      "Cache-Control" : [ "public, max-age=180" ],
+      "CDN-Status" : [ "200" ],
+      "CDN-RequestTime" : [ "0" ],
+      "CDN-RequestPullSuccess" : [ "True" ],
+      "CDN-RequestPullCode" : [ "200" ],
+      "CDN-RequestId" : [ "d41e85b68bb856fcccab70243a129b7e" ],
+      "CDN-RequestCountryCode" : [ "IN" ],
+      "CDN-PullZone" : [ "93447" ],
+      "CDN-ProxyVer" : [ "1.47" ],
+      "CDN-EdgeStorageId" : [ "1173" ],
+      "CDN-CachedAt" : [ "03/10/2026 11:57:31" ],
+      "CDN-Cache" : [ "EXPIRED" ],
+      "Age" : [ "0" ]
+    },
+    "body" : {
+      "contentType" : "application/json",
+      "type" : "JSON",
+      "json" : {
+        "location" : {
+          "name" : "Cairo",
+          "region" : "Al Qahirah",
+          "country" : "Egypt",
+          "lat" : 30.05,
+          "lon" : 31.25,
+          "tz_id" : "Africa/Cairo",
+          "localtime_epoch" : 1773143871,
+          "localtime" : "2026-03-10 13:57"
+        },
+        "current" : {
+          "last_updated_epoch" : 1773143100,
+          "last_updated" : "2026-03-10 13:45",
+          "temp_c" : 20.3,
+          "temp_f" : 68.5,
+          "is_day" : 1,
+          "condition" : {
+            "text" : "Partly Sunny",
+            "icon" : "//cdn.weatherapi.com/weather/64x64/day/116.png",
+            "code" : 1003
+          },
+          "wind_mph" : 13.9,
+          "wind_kph" : 22.3,
+          "wind_degree" : 50,
+          "wind_dir" : "NE",
+          "pressure_mb" : 1019.0,
+          "pressure_in" : 30.09,
+          "precip_mm" : 0.0,
+          "precip_in" : 0.0,
+          "humidity" : 30,
+          "cloud" : 50,
+          "feelslike_c" : 20.3,
+          "feelslike_f" : 68.5,
+          "windchill_c" : 20.9,
+          "windchill_f" : 69.7,
+          "heatindex_c" : 20.9,
+          "heatindex_f" : 69.7,
+          "dewpoint_c" : -1.2,
+          "dewpoint_f" : 29.9,
+          "vis_km" : 10.0,
+          "vis_miles" : 6.0,
+          "uv" : 5.6,
+          "gust_mph" : 15.9,
+          "gust_kph" : 25.7
+        }
+      },
+      "rawBytes" : "eyJsb2NhdGlvbiI6eyJuYW1lIjoiQ2Fpcm8iLCJyZWdpb24iOiJBbCBRYWhpcmFoIiwiY291bnRyeSI6IkVneXB0IiwibGF0IjozMC4wNSwibG9uIjozMS4yNSwidHpfaWQiOiJBZnJpY2EvQ2Fpcm8iLCJsb2NhbHRpbWVfZXBvY2giOjE3NzMxNDM4NzEsImxvY2FsdGltZSI6IjIwMjYtMDMtMTAgMTM6NTcifSwiY3VycmVudCI6eyJsYXN0X3VwZGF0ZWRfZXBvY2giOjE3NzMxNDMxMDAsImxhc3RfdXBkYXRlZCI6IjIwMjYtMDMtMTAgMTM6NDUiLCJ0ZW1wX2MiOjIwLjMsInRlbXBfZiI6NjguNSwiaXNfZGF5IjoxLCJjb25kaXRpb24iOnsidGV4dCI6IlBhcnRseSBjbG91ZHkiLCJpY29uIjoiLy9jZG4ud2VhdGhlcmFwaS5jb20vd2VhdGhlci82NHg2NC9kYXkvMTE2LnBuZyIsImNvZGUiOjEwMDN9LCJ3aW5kX21waCI6MTMuOSwid2luZF9rcGgiOjIyLjMsIndpbmRfZGVncmVlIjo1MCwid2luZF9kaXIiOiJORSIsInByZXNzdXJlX21iIjoxMDE5LjAsInByZXNzdXJlX2luIjozMC4wOSwicHJlY2lwX21tIjowLjAsInByZWNpcF9pbiI6MC4wLCJodW1pZGl0eSI6MzAsImNsb3VkIjo1MCwiZmVlbHNsaWtlX2MiOjIwLjMsImZlZWxzbGlrZV9mIjo2OC41LCJ3aW5kY2hpbGxfYyI6MjAuOSwid2luZGNoaWxsX2YiOjY5LjcsImhlYXRpbmRleF9jIjoyMC45LCJoZWF0aW5kZXhfZiI6NjkuNywiZGV3cG9pbnRfYyI6LTEuMiwiZGV3cG9pbnRfZiI6MjkuOSwidmlzX2ttIjoxMC4wLCJ2aXNfbWlsZXMiOjYuMCwidXYiOjUuNiwiZ3VzdF9tcGgiOjE1LjksImd1c3Rfa3BoIjoyNS43fX0="
+    }
+  },
+  "id" : "b3e336b4-1b3d-4058-8efe-40d13a074f4f",
+  "priority" : 0,
+  "timeToLive" : {
+    "unlimited" : true
+  },
+  "times" : {
+    "remainingTimes" : 1
+  }
+}, {
+  "httpRequest" : {
+    "method" : "GET",
+    "path" : "/v1/current.json",
+    "queryStringParameters" : {
+      "q" : [ "47.44384%2C-122.301735" ],
+      "aqi" : [ "no" ]
+    },
+    "headers" : {
+      "content-length" : [ "0" ],
+      "User-Agent" : [ "Java/17.0.18" ],
+      "Host" : [ "mockserver:1080" ],
+      "Connection" : [ "keep-alive" ],
+      "Accept" : [ "application/json, application/*+json" ]
+    },
+    "keepAlive" : true,
+    "secure" : false,
+    "protocol" : "HTTP_1_1",
+    "localAddress" : "172.18.0.3:1080",
+    "remoteAddress" : "172.18.0.5:42062"
+  },
+  "httpResponse" : {
+    "statusCode" : 200,
+    "reasonPhrase" : "OK",
+    "headers" : {
+      "x-weatherapi-qpm-left" : [ "99994" ],
+      "x-cache-hits" : [ "1" ],
+      "X-Cache" : [ "HIT" ],
+      "Vary" : [ "Accept-Encoding" ],
+      "Server" : [ "BunnyCDN-SG1-714" ],
+      "Date" : [ "Tue, 10 Mar 2026 11:57:38 GMT" ],
+      "Content-Type" : [ "application/json" ],
+      "Cache-Control" : [ "public, max-age=180" ],
+      "CDN-Status" : [ "200" ],
+      "CDN-RequestTime" : [ "0" ],
+      "CDN-RequestPullSuccess" : [ "True" ],
+      "CDN-RequestPullCode" : [ "200" ],
+      "CDN-RequestId" : [ "f078e17e85ca217f3a0d14c9e58c1677" ],
+      "CDN-RequestCountryCode" : [ "IN" ],
+      "CDN-PullZone" : [ "93447" ],
+      "CDN-ProxyVer" : [ "1.47" ],
+      "CDN-EdgeStorageId" : [ "979" ],
+      "CDN-CachedAt" : [ "03/10/2026 11:57:38" ],
+      "CDN-Cache" : [ "EXPIRED" ],
+      "Age" : [ "523" ]
+    },
+    "body" : {
+      "contentType" : "application/json",
+      "type" : "JSON",
+      "json" : {
+        "location" : {
+          "name" : "Cairo",
+          "region" : "Al Qahirah",
+          "country" : "Egypt",
+          "lat" : 30.05,
+          "lon" : 31.25,
+          "tz_id" : "Africa/Cairo",
+          "localtime_epoch" : 1773143353,
+          "localtime" : "2026-03-10 13:49"
+        },
+        "current" : {
+          "last_updated_epoch" : 1773143100,
+          "last_updated" : "2026-03-10 13:45",
+          "temp_c" : 20.4,
+          "temp_f" : 68.7,
+          "is_day" : 1,
+          "condition" : {
+            "text" : "Mostly cloudy",
+            "icon" : "//cdn.weatherapi.com/weather/64x64/day/116.png",
+            "code" : 1003
+          },
+          "wind_mph" : 13.9,
+          "wind_kph" : 22.3,
+          "wind_degree" : 50,
+          "wind_dir" : "NE",
+          "pressure_mb" : 1020.0,
+          "pressure_in" : 30.12,
+          "precip_mm" : 0.0,
+          "precip_in" : 0.0,
+          "humidity" : 32,
+          "cloud" : 50,
+          "feelslike_c" : 20.4,
+          "feelslike_f" : 68.7,
+          "windchill_c" : 20.9,
+          "windchill_f" : 69.7,
+          "heatindex_c" : 20.9,
+          "heatindex_f" : 69.7,
+          "dewpoint_c" : -1.2,
+          "dewpoint_f" : 29.9,
+          "vis_km" : 10.0,
+          "vis_miles" : 6.0,
+          "uv" : 5.6,
+          "gust_mph" : 15.9,
+          "gust_kph" : 25.7
+        }
+      },
+      "rawBytes" : "eyJsb2NhdGlvbiI6eyJuYW1lIjoiQ2Fpcm8iLCJyZWdpb24iOiJBbCBRYWhpcmFoIiwiY291bnRyeSI6IkVneXB0IiwibGF0IjozMC4wNSwibG9uIjozMS4yNSwidHpfaWQiOiJBZnJpY2EvQ2Fpcm8iLCJsb2NhbHRpbWVfZXBvY2giOjE3NzMxNDMzNTMsImxvY2FsdGltZSI6IjIwMjYtMDMtMTAgMTM6NDkifSwiY3VycmVudCI6eyJsYXN0X3VwZGF0ZWRfZXBvY2giOjE3NzMxNDMxMDAsImxhc3RfdXBkYXRlZCI6IjIwMjYtMDMtMTAgMTM6NDUiLCJ0ZW1wX2MiOjIwLjQsInRlbXBfZiI6NjguNywiaXNfZGF5IjoxLCJjb25kaXRpb24iOnsidGV4dCI6IlBhcnRseSBjbG91ZHkiLCJpY29uIjoiLy9jZG4ud2VhdGhlcmFwaS5jb20vd2VhdGhlci82NHg2NC9kYXkvMTE2LnBuZyIsImNvZGUiOjEwMDN9LCJ3aW5kX21waCI6MTMuOSwid2luZF9rcGgiOjIyLjMsIndpbmRfZGVncmVlIjo1MCwid2luZF9kaXIiOiJORSIsInByZXNzdXJlX21iIjoxMDIwLjAsInByZXNzdXJlX2luIjozMC4xMiwicHJlY2lwX21tIjowLjAsInByZWNpcF9pbiI6MC4wLCJodW1pZGl0eSI6MzIsImNsb3VkIjo1MCwiZmVlbHNsaWtlX2MiOjIwLjQsImZlZWxzbGlrZV9mIjo2OC43LCJ3aW5kY2hpbGxfYyI6MjAuOSwid2luZGNoaWxsX2YiOjY5LjcsImhlYXRpbmRleF9jIjoyMC45LCJoZWF0aW5kZXhfZiI6NjkuNywiZGV3cG9pbnRfYyI6LTEuMiwiZGV3cG9pbnRfZiI6MjkuOSwidmlzX2ttIjoxMC4wLCJ2aXNfbWlsZXMiOjYuMCwidXYiOjUuNiwiZ3VzdF9tcGgiOjE1LjksImd1c3Rfa3BoIjoyNS43fX0="
+    }
+  },
+  "id" : "a6c4b824-0f87-4418-b749-a457d1ceb6b9",
+  "priority" : 0,
+  "timeToLive" : {
+    "unlimited" : true
+  },
+  "times" : {
+    "remainingTimes" : 1
+  }
+} ]

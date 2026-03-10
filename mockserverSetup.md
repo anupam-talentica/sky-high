@@ -1,8 +1,9 @@
-## MockServer setup for AviationStack
+## MockServer setup for AviationStack & WeatherAPI
 
 This guide shows how to:
 - **Record** real AviationStack traffic via MockServer
-- **Replay** those responses locally for dev/tests without calling the real API
+- **Record** real WeatherAPI traffic via MockServer
+- **Replay** those responses locally for dev/tests without calling the real APIs
 
 ### 1. Run MockServer as a proxy
 
@@ -16,7 +17,9 @@ By default, it listens on `http://localhost:1080`.
 
 ### 2. Point the backend at MockServer (recording mode)
 
-In `application.yml` (for recording mode), point the AviationStack base URL to MockServer:
+In `application.yml` (for recording mode), point the external API base URLs you want to record at MockServer.
+
+**AviationStack (flights / airlines / airports)**:
 
 ```yaml
 external:
@@ -38,6 +41,24 @@ String url = "http://" + System.getenv("AVIATIONSTACK_TARGET_HOST") + "/v1/fligh
 
 MockServer will see the full URL and forward it to the real AviationStack API.
 
+**WeatherAPI (current weather)**:
+
+To record WeatherAPI, similarly point the WeatherAPI base URL to MockServer while recording:
+
+```yaml
+external:
+  weatherapi:
+    base-url: http://localhost:1080
+```
+
+Behind the scenes, `WeatherServiceImpl` builds URLs like:
+
+```text
+{weatherapi.base-url}/current.json?key=...&q=...
+```
+
+So during recording, calls will go to `http://localhost:1080/current.json?...`, which MockServer will forward to the real `https://api.weatherapi.com/v1/current.json` when configured in the expectations below.
+
 > Alternative: instead of building full URLs yourself, you can use MockServer’s “forward to host” configuration via its REST API.
 
 ### 3. Configure MockServer to record proxied traffic (via REST)
@@ -50,7 +71,9 @@ First, reset state:
 curl -v -X PUT "http://localhost:1080/mockserver/reset"
 ```
 
-Then create a **forwarding expectation** that proxies all AviationStack paths to the real API and **sets the correct `Host` header** (so Cloudflare/API accept the request). Use `httpOverrideForwardedRequest` with `requestOverride.socketAddress` and `requestModifier.headers.replace`:
+Then create **forwarding expectations** that proxy selected paths to the real APIs and **set the correct `Host` header** (so Cloudflare / providers accept the request). Use `httpOverrideForwardedRequest` with `requestOverride.socketAddress` and `requestModifier.headers.replace`.
+
+**AviationStack forwarding (all `/v1/...` paths)**:
 
 ```bash
 curl -v -X PUT "http://localhost:1080/mockserver/expectation" \
@@ -83,6 +106,37 @@ curl -v -X PUT "http://localhost:1080/mockserver/expectation" \
 
 With this in place, any request your backend sends to `http://<mockserver-host>:1080/v1/...` will be **forwarded to `http://api.aviationstack.com/v1/...` with the correct Host header and recorded** by MockServer.
 
+**WeatherAPI forwarding (only `/v1/current.json` paths)**:
+
+```bash
+curl -v -X PUT "http://localhost:1080/mockserver/expectation" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "httpRequest": {
+      "path": "/v1/current\\.json"
+    },
+    "httpOverrideForwardedRequest": {
+      "requestOverride": {
+        "socketAddress": {
+          "host": "api.weatherapi.com",
+          "port": 443,
+          "scheme": "HTTPS"
+        }
+      },
+      "requestModifier": {
+        "headers": {
+          "replace": [
+            { "name": "Host", "values": ["api.weatherapi.com"] }
+          ]
+        }
+      }
+    }
+  }'
+```
+
+- This forwards `http://localhost:1080/current.json?...` to `https://api.weatherapi.com/v1/current.json?...` with `Host: api.weatherapi.com`.
+- Because the backend builds a full URL using `weatherapi.base-url`, using `/current.json` as the path is sufficient to match and forward.
+
 ### 4. Drive real traffic through the proxy (record phase)
 
 1. Start the Sky‑High backend with:
@@ -98,41 +152,77 @@ MockServer will capture a log of all requests/responses for those AviationStack 
 
 Use MockServer’s “retrieve recorded expectations” API.
 
-The simplest option (no filtering, get everything recorded) is:
+The simplest option (no filtering, get everything recorded for **all** external APIs) is:
 
 ```bash
 curl -v -X PUT "http://localhost:1080/mockserver/retrieve?type=RECORDED_EXPECTATIONS" \
   -H "Content-Type: application/json" \
-  -d '{}' > aviationstack-recorded-expectations.json
+  -d '{}' > all-external-recorded-expectations.json
 ```
 
-If you want to filter by path, you can pass a valid `httpRequest` matcher (note: **do not** use a `host` field; it is not part of the matcher schema and will cause the error you saw):
+If you want to **export per API**, filter by path using a valid `httpRequest` matcher (note: **do not** use a `host` field; it is not part of the matcher schema and will cause errors):
+
+**AviationStack-only expectations**:
 
 ```bash
 curl -v -X PUT "http://localhost:1080/mockserver/retrieve?type=RECORDED_EXPECTATIONS" \
   -H "Content-Type: application/json" \
   -d '{
     "httpRequest": {
-      "path": "/v1/flights"
+      "path": "/v1/.*"
     }
   }' > aviationstack-recorded-expectations.json
 ```
 
-Either way, the resulting file contains request/response pairs for the AviationStack calls you made.
+**WeatherAPI-only expectations**:
 
-Commit it to the repo (for example alongside `aviationstack-recorded-expectations.json` in the Sky‑High project root).
+```bash
+curl -v -X PUT "http://localhost:1080/mockserver/retrieve?type=RECORDED_EXPECTATIONS" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "httpRequest": {
+      "path": "/v1/current\\.json"
+    }
+  }' > weatherapi-recorded-expectations.json
+```
+
+Either way, the resulting files contain request/response pairs for the AviationStack and/or WeatherAPI calls you made.
+
+Commit them to the repo (for example alongside `aviationstack-recorded-expectations.json` and `weatherapi-recorded-expectations.json` in the Sky‑High project root).
 
 ### 6. Run MockServer in replay mode (offline)
 
 In replay mode:
 
 1. Start MockServer (same Docker command as before).
-2. Load the recorded expectations:
+2. Load the recorded expectations you need:
+
+**AviationStack only**:
 
 ```bash
 curl -v -X PUT "http://localhost:1080/mockserver/expectation" \
   -H "Content-Type: application/json" \
   -d @aviationstack-recorded-expectations.json
+```
+
+**WeatherAPI only**:
+
+```bash
+curl -v -X PUT "http://localhost:1080/mockserver/expectation" \
+  -H "Content-Type: application/json" \
+  -d @weatherapi-recorded-expectations.json
+```
+
+**Both AviationStack and WeatherAPI together** (either load both files separately, or use a combined file):
+
+```bash
+curl -v -X PUT "http://localhost:1080/mockserver/expectation" \
+  -H "Content-Type: application/json" \
+  -d @aviationstack-recorded-expectations.json
+
+curl -v -X PUT "http://localhost:1080/mockserver/expectation" \
+  -H "Content-Type: application/json" \
+  -d @weatherapi-recorded-expectations.json
 ```
 
 Do **not** configure forwarding this time; MockServer will answer directly from the expectations.
