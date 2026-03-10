@@ -1,0 +1,238 @@
+[ {
+  "httpRequest" : {
+    "method" : "GET",
+    "path" : "/v1/airports",
+    "queryStringParameters" : {
+      "iata_code" : [ "JFK" ]
+    },
+    "headers" : {
+      "content-length" : [ "0" ],
+      "User-Agent" : [ "Java/17.0.18" ],
+      "Host" : [ "mockserver:1080" ],
+      "Connection" : [ "keep-alive" ],
+      "Accept" : [ "application/json, application/*+json" ]
+    },
+    "keepAlive" : true,
+    "secure" : false,
+    "protocol" : "HTTP_1_1",
+    "localAddress" : "192.168.16.4:1080",
+    "remoteAddress" : "192.168.16.6:48180"
+  },
+  "httpResponse" : {
+    "statusCode" : 200,
+    "reasonPhrase" : "OK",
+    "headers" : {
+      "x-request-time" : [ "0.024", "0.066" ],
+      "x-quota-remaining" : [ "91" ],
+      "x-quota-limit" : [ "100" ],
+      "x-increment-usage" : [ "1" ],
+      "x-apilayer-transaction-id" : [ "1fc00e71-e579-4b05-ba08-c4676f6ff639" ],
+      "cf-cache-status" : [ "DYNAMIC" ],
+      "cache-control" : [ "no-cache, private" ],
+      "access-control-allow-origin" : [ "*" ],
+      "access-control-allow-methods" : [ "GET, POST, HEAD, OPTIONS" ],
+      "access-control-allow-headers" : [ "*" ],
+      "Server" : [ "cloudflare" ],
+      "Report-To" : [ "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=rWpDODfDDgX4NRZ%2BkJJP1VTjWrg8fVBUfv1sUjjbS4UpnVm6QA0NCQJtb1DBDAXx2Op%2BgjgfrXVussOBIqfwAy%2Fb4VOy%2FgMfuHDjVv0ucAn5hTzy\"}]}" ],
+      "Nel" : [ "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}" ],
+      "Date" : [ "Sat, 07 Mar 2026 06:55:40 GMT" ],
+      "Content-Type" : [ "application/json" ],
+      "CF-RAY" : [ "9d87b2249d9b3a75-BOM" ]
+    },
+    "body" : {
+      "contentType" : "application/json",
+      "type" : "JSON",
+      "json" : {
+        "pagination" : {
+          "offset" : 0,
+          "limit" : 100,
+          "count" : 1,
+          "total" : 1
+        },
+        "data" : [ {
+          "id" : "6680304",
+          "gmt" : "-5",
+          "airport_id" : "3498",
+          "iata_code" : "JFK",
+          "city_iata_code" : "NYC",
+          "icao_code" : "KJFK",
+          "country_iso2" : "US",
+          "geoname_id" : "5122732",
+          "latitude" : "40.642334",
+          "longitude" : "-73.78817",
+          "airport_name" : "John F Kennedy International",
+          "country_name" : "United States",
+          "phone_number" : "718-244-4444",
+          "timezone" : "America/New_York"
+        } ]
+      },
+      "rawBytes" : "eyJwYWdpbmF0aW9uIjp7Im9mZnNldCI6MCwibGltaXQiOjEwMCwiY291bnQiOjEsInRvdGFsIjoxfSwiZGF0YSI6W3siaWQiOiI2NjgwMzA0IiwiZ210IjoiLTUiLCJhaXJwb3J0X2lkIjoiMzQ5OCIsImlhdGFfY29kZSI6IkpGSyIsImNpdHlfaWF0YV9jb2RlIjoiTllDIiwiaWNhb19jb2RlIjoiS0pGSyIsImNvdW50cnlfaXNvMiI6IlVTIiwiZ2VvbmFtZV9pZCI6IjUxMjI3MzIiLCJsYXRpdHVkZSI6IjQwLjY0MjMzNCIsImxvbmdpdHVkZSI6Ii03My43ODgxNyIsImFpcnBvcnRfbmFtZSI6IkpvaG4gRiBLZW5uZWR5IEludGVybmF0aW9uYWwiLCJjb3VudHJ5X25hbWUiOiJVbml0ZWQgU3RhdGVzIiwicGhvbmVfbnVtYmVyIjoiNzE4LTI0NC00NDQ0IiwidGltZXpvbmUiOiJBbWVyaWNhXC9OZXdfWW9yayJ9XX0="
+    }
+  },
+  "id" : "6aa14917-5a1f-43f7-a4a8-6bc0f804b3f1",
+  "priority" : 0,
+  "timeToLive" : {
+    "unlimited" : true
+  },
+  "times" : {
+    "unlimited" : true
+  }
+}, {
+  "httpRequest" : {
+    "method" : "GET",
+    "path" : "/v1/airports",
+    "queryStringParameters" : {
+      "iata_code" : [ "LAX" ]
+    },
+    "headers" : {
+      "content-length" : [ "0" ],
+      "User-Agent" : [ "Java/17.0.18" ],
+      "Host" : [ "mockserver:1080" ],
+      "Connection" : [ "keep-alive" ],
+      "Accept" : [ "application/json, application/*+json" ]
+    },
+    "keepAlive" : true,
+    "secure" : false,
+    "protocol" : "HTTP_1_1",
+    "localAddress" : "192.168.16.4:1080",
+    "remoteAddress" : "192.168.16.6:48180"
+  },
+  "httpResponse" : {
+    "statusCode" : 200,
+    "reasonPhrase" : "OK",
+    "headers" : {
+      "x-request-time" : [ "0.024", "0.055" ],
+      "x-quota-remaining" : [ "90" ],
+      "x-quota-limit" : [ "100" ],
+      "x-increment-usage" : [ "1" ],
+      "x-apilayer-transaction-id" : [ "e82197df-5d14-4742-932c-a484112f5b8a" ],
+      "cf-cache-status" : [ "DYNAMIC" ],
+      "cache-control" : [ "no-cache, private" ],
+      "access-control-allow-origin" : [ "*" ],
+      "access-control-allow-methods" : [ "GET, POST, HEAD, OPTIONS" ],
+      "access-control-allow-headers" : [ "*" ],
+      "Server" : [ "cloudflare" ],
+      "Report-To" : [ "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=ir6JC0u8WNsF1C5yFqHFuIpGPbS0GcGL6E%2Fq3PrO0OG%2Bxf6SJVNdmwp7cCrgucQhIQCTdNh%2BFyvwzqrXusIU7uUzlh%2FtB9zGGmqOy3OOpW%2BhuIkM\"}]}" ],
+      "Nel" : [ "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}" ],
+      "Date" : [ "Sat, 07 Mar 2026 06:55:45 GMT" ],
+      "Content-Type" : [ "application/json" ],
+      "CF-RAY" : [ "9d87b242ae893a16-BOM" ]
+    },
+    "body" : {
+      "contentType" : "application/json",
+      "type" : "JSON",
+      "json" : {
+        "pagination" : {
+          "offset" : 0,
+          "limit" : 100,
+          "count" : 1,
+          "total" : 1
+        },
+        "data" : [ {
+          "id" : "6680995",
+          "gmt" : "-8",
+          "airport_id" : "4189",
+          "iata_code" : "LAX",
+          "city_iata_code" : "LAX",
+          "icao_code" : "KLAX",
+          "country_iso2" : "US",
+          "geoname_id" : "5368418",
+          "latitude" : "33.943398",
+          "longitude" : "-118.40828",
+          "airport_name" : "Los Angeles International",
+          "country_name" : "United States",
+          "phone_number" : "310-646-5252",
+          "timezone" : "America/Los_Angeles"
+        } ]
+      },
+      "rawBytes" : "eyJwYWdpbmF0aW9uIjp7Im9mZnNldCI6MCwibGltaXQiOjEwMCwiY291bnQiOjEsInRvdGFsIjoxfSwiZGF0YSI6W3siaWQiOiI2NjgwOTk1IiwiZ210IjoiLTgiLCJhaXJwb3J0X2lkIjoiNDE4OSIsImlhdGFfY29kZSI6IkxBWCIsImNpdHlfaWF0YV9jb2RlIjoiTEFYIiwiaWNhb19jb2RlIjoiS0xBWCIsImNvdW50cnlfaXNvMiI6IlVTIiwiZ2VvbmFtZV9pZCI6IjUzNjg0MTgiLCJsYXRpdHVkZSI6IjMzLjk0MzM5OCIsImxvbmdpdHVkZSI6Ii0xMTguNDA4MjgiLCJhaXJwb3J0X25hbWUiOiJMb3MgQW5nZWxlcyBJbnRlcm5hdGlvbmFsIiwiY291bnRyeV9uYW1lIjoiVW5pdGVkIFN0YXRlcyIsInBob25lX251bWJlciI6IjMxMC02NDYtNTI1MiIsInRpbWV6b25lIjoiQW1lcmljYVwvTG9zX0FuZ2VsZXMifV19"
+    }
+  },
+  "id" : "424bdc8e-fe7a-4e35-9f27-18af173379f8",
+  "priority" : 0,
+  "timeToLive" : {
+    "unlimited" : true
+  },
+  "times" : {
+    "unlimited" : true
+  }
+}, {
+  "httpRequest" : {
+    "method" : "GET",
+    "path" : "/v1/airports",
+    "queryStringParameters" : {
+      "iata_code" : [ "SEA" ]
+    },
+    "headers" : {
+      "content-length" : [ "0" ],
+      "User-Agent" : [ "Java/17.0.18" ],
+      "Host" : [ "mockserver:1080" ],
+      "Connection" : [ "keep-alive" ],
+      "Accept" : [ "application/json, application/*+json" ]
+    },
+    "keepAlive" : true,
+    "secure" : false,
+    "protocol" : "HTTP_1_1",
+    "localAddress" : "192.168.16.4:1080",
+    "remoteAddress" : "192.168.16.6:54258"
+  },
+  "httpResponse" : {
+    "statusCode" : 200,
+    "reasonPhrase" : "OK",
+    "headers" : {
+      "x-request-time" : [ "0.036", "0.067" ],
+      "x-quota-remaining" : [ "89" ],
+      "x-quota-limit" : [ "100" ],
+      "x-increment-usage" : [ "1" ],
+      "x-apilayer-transaction-id" : [ "0432cac3-9bdb-4160-88bf-16969c34ad1c" ],
+      "cf-cache-status" : [ "DYNAMIC" ],
+      "cache-control" : [ "no-cache, private" ],
+      "access-control-allow-origin" : [ "*" ],
+      "access-control-allow-methods" : [ "GET, POST, HEAD, OPTIONS" ],
+      "access-control-allow-headers" : [ "*" ],
+      "Server" : [ "cloudflare" ],
+      "Report-To" : [ "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=aes1nl6PrkvtBZxGa%2BNWBHa1OhbZh7ibE1djkNlmMVo8lFlVEcQPO6WBvvGph%2FvywnZKvqgnYUeVDQw%2FauW2bS8N9vAU9N1DnudFBLZ77dset%2FFC\"}]}" ],
+      "Nel" : [ "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}" ],
+      "Date" : [ "Sat, 07 Mar 2026 06:56:12 GMT" ],
+      "Content-Type" : [ "application/json" ],
+      "CF-RAY" : [ "9d87b2eb38c847cd-BOM" ]
+    },
+    "body" : {
+      "contentType" : "application/json",
+      "type" : "JSON",
+      "json" : {
+        "pagination" : {
+          "offset" : 0,
+          "limit" : 100,
+          "count" : 1,
+          "total" : 1
+        },
+        "data" : [ {
+          "id" : "6683810",
+          "gmt" : "-8",
+          "airport_id" : "7004",
+          "iata_code" : "SEA",
+          "city_iata_code" : "SEA",
+          "icao_code" : "KSEA",
+          "country_iso2" : "US",
+          "geoname_id" : "5809876",
+          "latitude" : "47.44384",
+          "longitude" : "-122.301735",
+          "airport_name" : "Seattle-Tacoma International",
+          "country_name" : "United States",
+          "phone_number" : "206-787-5388",
+          "timezone" : "America/Los_Angeles"
+        } ]
+      },
+      "rawBytes" : "eyJwYWdpbmF0aW9uIjp7Im9mZnNldCI6MCwibGltaXQiOjEwMCwiY291bnQiOjEsInRvdGFsIjoxfSwiZGF0YSI6W3siaWQiOiI2NjgzODEwIiwiZ210IjoiLTgiLCJhaXJwb3J0X2lkIjoiNzAwNCIsImlhdGFfY29kZSI6IlNFQSIsImNpdHlfaWF0YV9jb2RlIjoiU0VBIiwiaWNhb19jb2RlIjoiS1NFQSIsImNvdW50cnlfaXNvMiI6IlVTIiwiZ2VvbmFtZV9pZCI6IjU4MDk4NzYiLCJsYXRpdHVkZSI6IjQ3LjQ0Mzg0IiwibG9uZ2l0dWRlIjoiLTEyMi4zMDE3MzUiLCJhaXJwb3J0X25hbWUiOiJTZWF0dGxlLVRhY29tYSBJbnRlcm5hdGlvbmFsIiwiY291bnRyeV9uYW1lIjoiVW5pdGVkIFN0YXRlcyIsInBob25lX251bWJlciI6IjIwNi03ODctNTM4OCIsInRpbWV6b25lIjoiQW1lcmljYVwvTG9zX0FuZ2VsZXMifV19"
+    }
+  },
+  "id" : "de132afa-8530-4f8f-b222-9141a93dfb1a",
+  "priority" : 0,
+  "timeToLive" : {
+    "unlimited" : true
+  },
+  "times" : {
+    "unlimited" : true
+  }
+} ]

@@ -113,6 +113,30 @@ notifications:
   enabled: true
   queueName: notifications:queue
 
+external:
+  aviationstack:
+    api-key: ${AVIATIONSTACK_API_KEY:f2c90d3047ee3f0b768a73f82ce5b567}
+    base-url: http://localhost:1080 
+    #http://api.aviationstack.com/v1
+    timeout: 5000
+    enabled: ${AVIATIONSTACK_ENABLED:true}
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      aviationstack:
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 60000
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+  retry:
+    instances:
+      aviationstack:
+        max-attempts: 3
+        wait-duration: 1000
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+
 app:
   redis:
     seat-map-cache-enabled: ${REDIS_SEAT_MAP_CACHE_ENABLED:true}

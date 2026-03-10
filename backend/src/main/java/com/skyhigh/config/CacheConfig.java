@@ -15,8 +15,14 @@ public class CacheConfig {
     
     @Bean
     public CacheManager cacheManager() {
-        // seatMaps now served by Redis when app.redis.seat-map-cache-enabled=true
-        CaffeineCacheManager cacheManager = new CaffeineCacheManager("flights");
+        // Seat maps are served by Redis when enabled; Caffeine is used for
+        // lightweight in-memory caches like flights, flightStatus, and AviationStack metadata.
+        CaffeineCacheManager cacheManager = new CaffeineCacheManager(
+                "flights",
+                "flightStatus",
+                "aviationAirline",
+                "aviationAirport"
+        );
         cacheManager.setCaffeine(caffeineCacheBuilder());
         return cacheManager;
     }
