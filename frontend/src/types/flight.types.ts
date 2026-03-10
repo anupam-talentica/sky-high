@@ -37,4 +37,6 @@ export interface Airport {
   timezone: string;
   latitude?: number;
   longitude?: number;
+  temperatureC?: number;
+  weatherDescription?: string;
 }

@@ -20,5 +20,15 @@ public class AirportDTO {
     private String timezone;
     private Double latitude;
     private Double longitude;
+
+    /**
+     * Current temperature at the airport location in degrees Celsius.
+     */
+    private Double temperatureC;
+
+    /**
+     * Short textual description of the current weather conditions.
+     */
+    private String weatherDescription;
 }
 

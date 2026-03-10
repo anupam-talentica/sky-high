@@ -39,6 +39,7 @@ export const FlightSelectionPage: React.FC = () => {
   const [selectedAirport, setSelectedAirport] = useState<Airport | null>(null);
   const [dialogLoading, setDialogLoading] = useState(false);
   const [dialogError, setDialogError] = useState<string | null>(null);
+  const [weatherLoading, setWeatherLoading] = useState(false);
 
   useEffect(() => {
     resetCheckIn();
@@ -106,6 +107,7 @@ export const FlightSelectionPage: React.FC = () => {
       setSelectedAirport(null);
       setDialogLoading(true);
       setDialogError(null);
+      setWeatherLoading(false);
       setAirportDialogOpen(true);
       const airport = await flightService.getAirportByIata(iataCode);
       setSelectedAirport(airport);
@@ -114,6 +116,20 @@ export const FlightSelectionPage: React.FC = () => {
       setDialogError(apiError.message);
     } finally {
       setDialogLoading(false);
+    }
+  };
+
+  const handleCheckWeather = async () => {
+    if (!selectedAirport) return;
+    try {
+      setWeatherLoading(true);
+      const enriched = await flightService.getAirportWeatherByIata(selectedAirport.iataCode);
+      setSelectedAirport(enriched);
+    } catch (err) {
+      const apiError = err as ApiError;
+      setDialogError(apiError.message);
+    } finally {
+      setWeatherLoading(false);
     }
   };
 
@@ -329,6 +345,35 @@ export const FlightSelectionPage: React.FC = () => {
               <Typography variant="body2" color="text.secondary">
                 Timezone: {selectedAirport.timezone}
               </Typography>
+              {typeof selectedAirport.temperatureC === 'number' ? (
+                <Typography variant="body2" color="text.secondary">
+                  Weather: {selectedAirport.temperatureC.toFixed(1)}°C
+                  {selectedAirport.weatherDescription ? `, ${selectedAirport.weatherDescription}` : ''}
+                </Typography>
+              ) : (
+                <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Button
+                    variant="text"
+                    size="small"
+                    onClick={handleCheckWeather}
+                    disabled={weatherLoading}
+                    sx={{ textTransform: 'none', p: 0, minWidth: 0 }}
+                  >
+                    <Typography
+                      variant="body2"
+                      color="primary"
+                      sx={{ textDecoration: 'underline' }}
+                    >
+                      Check weather now
+                    </Typography>
+                  </Button>
+                  {weatherLoading && (
+                    <Typography variant="body2" color="text.secondary">
+                      Fetching weather...
+                    </Typography>
+                  )}
+                </Box>
+              )}
             </Box>
           )}
         </DialogContent>

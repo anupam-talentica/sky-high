@@ -30,4 +30,9 @@ export const flightService = {
     const response = await axiosInstance.get<Airport>(`/airports/${iataCode}`);
     return response.data;
   },
+
+  async getAirportWeatherByIata(iataCode: string): Promise<Airport> {
+    const response = await axiosInstance.get<Airport>(`/airports/${iataCode}/weather`);
+    return response.data;
+  },
 };

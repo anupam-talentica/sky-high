@@ -120,6 +120,11 @@ external:
     #http://api.aviationstack.com/v1
     timeout: 5000
     enabled: ${AVIATIONSTACK_ENABLED:true}
+  weatherapi:
+    api-key: ${WEATHERAPI_API_KEY:09583c8331fa4697a2a63031253112}
+    base-url: https://api.weatherapi.com/v1
+    timeout: 5000
+    enabled: ${WEATHERAPI_ENABLED:true}
 
 resilience4j:
   circuitbreaker:
