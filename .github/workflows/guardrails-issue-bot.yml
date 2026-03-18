@@ -232,12 +232,15 @@ jobs:
                   );
 
                   for (const result of (run.results || [])) {
-                    // Only ERROR level findings create issues
-                    const level = (result.level || 'warning').toLowerCase();
+                    const ruleId = result.ruleId || 'unknown-rule';
+                    const rule   = rules[ruleId] || {};
+                    // result.level is often absent — fall back to rule defaultConfiguration
+                    const level  = (
+                      result.level ||
+                      rule.defaultConfiguration?.level ||
+                      'warning'
+                    ).toLowerCase();
                     if (level !== 'error') continue;
-
-                    const ruleId    = result.ruleId || 'unknown-rule';
-                    const rule      = rules[ruleId] || {};
                     const message   = result.message?.text || rule.shortDescription?.text || ruleId;
                     const location  = result.locations?.[0]?.physicalLocation;
                     const filePath  = location?.artifactLocation?.uri || 'unknown-file';

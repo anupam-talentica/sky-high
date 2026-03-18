@@ -259,11 +259,17 @@ jobs:
                   const rules = Object.fromEntries((run.tool?.driver?.rules || []).map(r => [r.id, r]));
                   console.log(`Semgrep results count: ${(run.results || []).length}`);
                   for (const result of (run.results || [])) {
-                    const level = (result.level || 'warning').toLowerCase();
-                    console.log(`  result: ${result.ruleId} level=${level}`);
+                    const ruleId = result.ruleId || 'unknown-rule';
+                    const rule   = rules[ruleId] || {};
+                    // result.level is often absent in Semgrep SARIF — fall back
+                    // to the rule's defaultConfiguration.level
+                    const level  = (
+                      result.level ||
+                      rule.defaultConfiguration?.level ||
+                      'warning'
+                    ).toLowerCase();
+                    console.log(`  result: ${ruleId} level=${level}`);
                     if (level !== 'error') continue;
-                    const ruleId      = result.ruleId || 'unknown-rule';
-                    const rule        = rules[ruleId] || {};
                     const message     = result.message?.text || rule.shortDescription?.text || ruleId;
                     const location    = result.locations?.[0]?.physicalLocation;
                     const filePath    = location?.artifactLocation?.uri || 'unknown-file';
