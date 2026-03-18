@@ -86,11 +86,10 @@ jobs:
           if-no-files-found: ignore
 
       # ── 6. Install Semgrep (cached) ──────────────────────────────────────
-      - name: Set up Python with pip cache
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          cache: 'pip'
 
       - name: Install Semgrep
         run: pip install semgrep --quiet
