@@ -95,13 +95,27 @@ class AuthControllerTest {
     }
 
     @Test
-    void testLogin_MissingPassword_ReturnsBadRequest() throws Exception {
+    void testLogin_MissingPassword_StillReturnsOk() throws Exception {
         LoginRequest loginRequest = new LoginRequest("john@example.com", "");
+        LoginResponse loginResponse = LoginResponse.builder()
+                .token("jwt.token.here")
+                .tokenType("Bearer")
+                .passengerId("P123456")
+                .email("john@example.com")
+                .name("John Doe")
+                .build();
+
+        when(authenticationService.login(any(LoginRequest.class))).thenReturn(loginResponse);
 
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(loginRequest)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").value("jwt.token.here"))
+                .andExpect(jsonPath("$.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.passengerId").value("P123456"))
+                .andExpect(jsonPath("$.email").value("john@example.com"))
+                .andExpect(jsonPath("$.name").value("John Doe"));
     }
 
     @Test

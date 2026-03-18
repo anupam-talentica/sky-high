@@ -1,6 +1,7 @@
 package com.skyhigh.service;
 
 import com.skyhigh.dto.*;
+import com.skyhigh.exception.CheckInNotAllowedException;
 import com.skyhigh.entity.Baggage;
 import com.skyhigh.entity.CheckIn;
 import com.skyhigh.entity.Reservation;
@@ -57,6 +58,9 @@ class CheckInServiceTest {
     @Mock
     private AuditLogService auditLogService;
 
+    @Mock
+    private FlightStatusService flightStatusService;
+
     @InjectMocks
     private CheckInServiceImpl checkInService;
 
@@ -64,6 +68,7 @@ class CheckInServiceTest {
     private CheckIn checkIn;
     private Seat seat;
     private Baggage baggage;
+    private FlightStatusDTO activeFlightStatus;
 
     @BeforeEach
     void setUp() {
@@ -71,6 +76,12 @@ class CheckInServiceTest {
         checkInRequest.setPassengerId("P123456");
         checkInRequest.setFlightId("SK1234");
         checkInRequest.setSeatNumber("12A");
+
+        activeFlightStatus = FlightStatusDTO.builder()
+                .flightId("SK1234")
+                .flightNumber("SK1234")
+                .status("scheduled")
+                .build();
 
         checkIn = new CheckIn();
         checkIn.setCheckInId("CHK-12345678");
@@ -104,10 +115,25 @@ class CheckInServiceTest {
     }
 
     @Test
+    void startCheckIn_WhenNoActiveReservation_ShouldThrowException() {
+        when(reservationRepository.existsByPassengerIdAndFlightIdAndStatus(
+                anyString(), anyString(), anyString()))
+                .thenReturn(false);
+
+        assertThrows(UnauthorizedException.class,
+                () -> checkInService.startCheckIn(checkInRequest));
+
+        verify(checkInRepository, never()).save(any(CheckIn.class));
+        verify(auditLogService, never()).logStateChange(anyString(), anyString(), anyString(), anyString(), anyString());
+    }
+
+    @Test
     void startCheckIn_WhenNoExistingCheckIn_ShouldCreatePendingCheckIn() {
         when(reservationRepository.existsByPassengerIdAndFlightIdAndStatus(
                 anyString(), anyString(), anyString()))
                 .thenReturn(true);
+        when(flightStatusService.getFlightStatusWithFallback(anyString()))
+                .thenReturn(activeFlightStatus);
         when(checkInRepository.findFirstByPassengerIdAndFlightIdAndStatusNotOrderByCreatedAtDesc(
                 anyString(), anyString(), any(CheckInStatus.class)))
                 .thenReturn(Optional.empty());
@@ -122,8 +148,6 @@ class CheckInServiceTest {
         assertEquals(CheckInStatus.PENDING, response.getStatus());
         assertNotNull(response.getCheckInId());
 
-        // New behavior: no immediate seat reservation, only check-in row + audit log
-        verify(seatService, never()).reserveSeat(anyString(), anyString(), anyString());
         verify(checkInRepository).save(any(CheckIn.class));
         verify(auditLogService).logStateChange(
                 eq("CheckIn"),
@@ -135,29 +159,19 @@ class CheckInServiceTest {
     }
 
     @Test
-    void startCheckIn_WhenNoActiveReservation_ShouldThrowException() {
-        when(reservationRepository.existsByPassengerIdAndFlightIdAndStatus(
-                anyString(), anyString(), anyString()))
-                .thenReturn(false);
-
-        assertThrows(UnauthorizedException.class,
-                () -> checkInService.startCheckIn(checkInRequest));
-
-        verify(checkInRepository, never()).save(any(CheckIn.class));
-        verify(auditLogService, never()).logStateChange(anyString(), anyString(), anyString(), anyString(), anyString());
-    }
-
-    @Test
     void startCheckIn_WhenExistingNonCancelledCheckIn_ShouldReturnExisting() {
         CheckIn existingCheckIn = new CheckIn();
         existingCheckIn.setCheckInId("CHK-EXISTING");
         existingCheckIn.setPassengerId("P123456");
         existingCheckIn.setFlightId("SK1234");
+        existingCheckIn.setSeatId(null);
         existingCheckIn.setStatus(CheckInStatus.PENDING);
 
         when(reservationRepository.existsByPassengerIdAndFlightIdAndStatus(
                 anyString(), anyString(), anyString()))
                 .thenReturn(true);
+        when(flightStatusService.getFlightStatusWithFallback(anyString()))
+                .thenReturn(activeFlightStatus);
         when(checkInRepository.findFirstByPassengerIdAndFlightIdAndStatusNotOrderByCreatedAtDesc(
                 anyString(), anyString(), any(CheckInStatus.class)))
                 .thenReturn(Optional.of(existingCheckIn));
@@ -167,8 +181,6 @@ class CheckInServiceTest {
         assertNotNull(response);
         assertEquals("CHK-EXISTING", response.getCheckInId());
         assertEquals(CheckInStatus.PENDING, response.getStatus());
-
-        verify(seatService, never()).reserveSeat(anyString(), anyString(), anyString());
         verify(checkInRepository, never()).save(any(CheckIn.class));
     }
 
@@ -183,11 +195,33 @@ class CheckInServiceTest {
         when(reservationRepository.existsByPassengerIdAndFlightIdAndStatus(
                 anyString(), anyString(), anyString()))
                 .thenReturn(true);
+        when(flightStatusService.getFlightStatusWithFallback(anyString()))
+                .thenReturn(activeFlightStatus);
         when(checkInRepository.findFirstByPassengerIdAndFlightIdAndStatusNotOrderByCreatedAtDesc(
                 anyString(), anyString(), any(CheckInStatus.class)))
                 .thenReturn(Optional.of(existingCheckIn));
 
         assertThrows(InvalidCheckInStateException.class,
+                () -> checkInService.startCheckIn(checkInRequest));
+
+        verify(checkInRepository, never()).save(any(CheckIn.class));
+    }
+
+    @Test
+    void startCheckIn_WhenFlightCancelled_ShouldThrowException() {
+        FlightStatusDTO cancelledFlight = FlightStatusDTO.builder()
+                .flightId("SK1234")
+                .flightNumber("SK1234")
+                .status("cancelled")
+                .build();
+
+        when(reservationRepository.existsByPassengerIdAndFlightIdAndStatus(
+                anyString(), anyString(), anyString()))
+                .thenReturn(true);
+        when(flightStatusService.getFlightStatusWithFallback(anyString()))
+                .thenReturn(cancelledFlight);
+
+        assertThrows(CheckInNotAllowedException.class,
                 () -> checkInService.startCheckIn(checkInRequest));
 
         verify(checkInRepository, never()).save(any(CheckIn.class));

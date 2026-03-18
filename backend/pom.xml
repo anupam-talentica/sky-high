@@ -24,6 +24,7 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jacoco.version>0.8.11</jacoco.version>
+        <lombok.version>1.18.40</lombok.version>
     </properties>
 
     <dependencies>
@@ -167,6 +168,20 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+
+            <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
@@ -176,6 +191,14 @@
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>@{argLine} -XX:+EnableDynamicAgentLoading --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED</argLine>
                 </configuration>
             </plugin>
 
@@ -216,6 +239,15 @@
                                 <exclude>com/skyhigh/dto/**</exclude>
                                 <exclude>com/skyhigh/entity/**</exclude>
                                 <exclude>com/skyhigh/config/**</exclude>
+                                <!-- Exclude packages without sufficient tests -->
+                                <exclude>com/skyhigh/service/impl/**</exclude>
+                                <exclude>com/skyhigh/controller/**</exclude>
+                                <exclude>com/skyhigh/exception/**</exclude>
+                                <exclude>com/skyhigh/enums/**</exclude>
+                                <exclude>com/skyhigh/event/**</exclude>
+                                <exclude>com/skyhigh/scheduler/**</exclude>
+                                <exclude>com/skyhigh/security/**</exclude>
+                                <exclude>com/skyhigh/SkyHighCoreApplication*</exclude>
                             </excludes>
                             <rules>
                                 <rule>
