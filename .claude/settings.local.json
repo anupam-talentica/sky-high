@@ -6,7 +6,8 @@
       "Bash(java -version)",
       "Bash(javac -version)",
       "Bash(grep -n \"actions/checkout\\\\|setup-java\\\\|setup-node\\\\|docker/login\\\\|docker/setup-buildx\" /Users/anupamg/Desktop/Code/Assignment/Sky-High/.github/workflows/*.yml)",
-      "Bash(mvn --no-transfer-progress checkstyle:check)"
+      "Bash(mvn --no-transfer-progress checkstyle:check)",
+      "Bash(find /Users/anupamg/Desktop/Code/Assignment/Sky-High/.github -type f -name *.yml -o -name *.yaml)"
     ]
   }
 }

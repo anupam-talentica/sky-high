@@ -3,7 +3,7 @@ name: "Guardrails – Issue Creation Bot"
 # ─────────────────────────────────────────────────────────────────────────────
 # Stage 2 of the two-stage guardrails pipeline (Section 14).
 #
-# Goal  : convert non-blocking WARNING findings into GitHub Issues labelled
+# Goal  : convert ERROR findings that blocked the PR into GitHub Issues labelled
 #         `copilot-fixable` with a pre-filled Copilot Chat prompt, so that
 #         any developer can open the Issue in Copilot Chat and fix it in under
 #         a minute — directly from the browser.
@@ -11,8 +11,8 @@ name: "Guardrails – Issue Creation Bot"
 # Trigger: runs AFTER the fast-gate job completes (workflow_run event), so it
 #          never adds latency to the PR feedback loop.
 #
-# Tools : Checkstyle (warning-level findings from the XML artefact)
-#         Semgrep    (WARNING-severity findings from the SARIF artefact)
+# Tools : Checkstyle (error-level findings from the XML artefact)
+#         Semgrep    (ERROR-severity findings from the SARIF artefact)
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
@@ -22,7 +22,7 @@ on:
 
 jobs:
   issue-bot:
-    name: "Issue Bot (Copilot-Fixable Warnings)"
+    name: "Issue Bot (Copilot-Fixable Errors)"
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -125,7 +125,7 @@ jobs:
               // Lightweight regex parse — no external XML lib needed
               // Matches: <file name="..."> ... <error line="N" ... severity="warning" message="..." source="..."/>
               const fileRe  = /<file name="([^"]+)">([\s\S]*?)<\/file>/g;
-              const errorRe = /<error\s[^>]*severity="warning"[^>]*>/g;
+              const errorRe = /<error\s[^>]*severity="error"[^>]*>/g;
               const attrRe  = /(\w+)="([^"]*)"/g;
 
               let fileMatch;
@@ -188,9 +188,9 @@ jobs:
                 );
 
                 for (const result of (run.results || [])) {
-                  // Only process WARNING-level findings
-                  const level = result.level || 'warning';
-                  if (level !== 'warning') continue;
+                  // Only process ERROR-level findings
+                  const level = result.level || 'error';
+                  if (level !== 'error') continue;
 
                   const ruleId   = result.ruleId || 'unknown-rule';
                   const rule     = rules[ruleId] || {};
