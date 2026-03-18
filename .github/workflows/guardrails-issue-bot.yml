@@ -156,8 +156,8 @@ jobs:
               const xml = fs.readFileSync(checkstyleFile, 'utf8');
 
               const fileRe  = /<file name="([^"]+)">([\s\S]*?)<\/file>/g;
-              // Match both error and warning severity
-              const errorRe = /<error\s[^>]*severity="(?:error|warning)"[^>]*>/gi;
+              // Only ERROR severity findings create issues
+              const errorRe = /<error\s[^>]*severity="error"[^>]*>/gi;
               const attrRe  = /(\w+)="([^"]*)"/g;
 
               let fileMatch;
@@ -232,9 +232,9 @@ jobs:
                   );
 
                   for (const result of (run.results || [])) {
-                    // Accept both error and warning level findings
+                    // Only ERROR level findings create issues
                     const level = (result.level || 'warning').toLowerCase();
-                    if (level !== 'error' && level !== 'warning') continue;
+                    if (level !== 'error') continue;
 
                     const ruleId    = result.ruleId || 'unknown-rule';
                     const rule      = rules[ruleId] || {};

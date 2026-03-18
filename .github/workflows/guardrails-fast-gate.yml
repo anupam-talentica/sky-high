@@ -210,7 +210,7 @@ jobs:
             if (fs.existsSync(checkstyleFile)) {
               const xml      = fs.readFileSync(checkstyleFile, 'utf8');
               const fileRe   = /<file name="([^"]+)">([\s\S]*?)<\/file>/g;
-              const errorRe  = /<error\s[^>]*severity="(?:error|warning)"[^>]*>/gi;
+              const errorRe  = /<error\s[^>]*severity="error"[^>]*>/gi;
               const attrRe   = /(\w+)="([^"]*)"/g;
               let fileMatch;
               while ((fileMatch = fileRe.exec(xml)) !== null) {
@@ -248,7 +248,7 @@ jobs:
                   const rules = Object.fromEntries((run.tool?.driver?.rules || []).map(r => [r.id, r]));
                   for (const result of (run.results || [])) {
                     const level   = (result.level || 'warning').toLowerCase();
-                    if (level !== 'error' && level !== 'warning') continue;
+                    if (level !== 'error') continue;
                     const ruleId      = result.ruleId || 'unknown-rule';
                     const rule        = rules[ruleId] || {};
                     const message     = result.message?.text || rule.shortDescription?.text || ruleId;

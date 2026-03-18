@@ -7,7 +7,11 @@
       "Bash(javac -version)",
       "Bash(grep -n \"actions/checkout\\\\|setup-java\\\\|setup-node\\\\|docker/login\\\\|docker/setup-buildx\" /Users/anupamg/Desktop/Code/Assignment/Sky-High/.github/workflows/*.yml)",
       "Bash(mvn --no-transfer-progress checkstyle:check)",
-      "Bash(find /Users/anupamg/Desktop/Code/Assignment/Sky-High/.github -type f -name *.yml -o -name *.yaml)"
+      "Bash(find /Users/anupamg/Desktop/Code/Assignment/Sky-High/.github -type f -name *.yml -o -name *.yaml)",
+      "Bash(gh issue:*)",
+      "Bash(xargs -I{} gh issue close {} --comment \"Closing — this issue was filed for a WARNING-level finding. Only ERROR-level findings will be tracked going forward.\")",
+      "Bash(xargs -I{} gh issue close {} --comment \"Closing — WARNING-level finding. Only ERROR-level findings tracked going forward.\" done echo \"Done\")",
+      "Bash(xargs -I{} gh issue close {} --comment \"Closing — WARNING-level finding. Only ERROR-level findings tracked going forward.\")"
     ]
   }
 }
