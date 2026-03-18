@@ -94,29 +94,36 @@ jobs:
       - name: Install Semgrep
         run: pip install semgrep --quiet
 
-      # ── 7. Semgrep diff-aware scan (errors only) ──────────────────────────
-      # --diff-aware limits scanning to lines added/changed in this PR.
+      # ── 7. Semgrep scan (errors only, scoped to changed files) ──────────────
+      # --diff-aware was removed in newer Semgrep versions.  Instead, we pass
+      # only the changed Java files as explicit targets, which achieves the same
+      # "scan only PR-changed lines" behaviour without the unsupported flag.
       # --error causes a non-zero exit on any ERROR-severity finding.
       # SARIF output is uploaded for GitHub Code Scanning + used by issue-bot.
-      - name: Run Semgrep (diff-aware, error-level findings block the PR)
+      - name: Run Semgrep (changed files only, error-level findings block the PR)
         id: semgrep
         env:
           SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}   # optional: enables Semgrep Cloud
         run: |
+          CHANGED_FILES="${{ steps.changed.outputs.files }}"
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No changed Java files — skipping Semgrep."
+            touch semgrep-results.sarif   # create empty file so upload step is happy
+            exit 0
+          fi
           semgrep \
             --config .semgrep/skyhigh.yml \
-            --diff-aware \
             --error \
             --severity ERROR \
             --sarif \
             --output semgrep-results.sarif \
-            backend/src/main/java
+            $CHANGED_FILES
         continue-on-error: true   # capture exit code; we decide below
 
       # ── 8. Upload Semgrep SARIF to GitHub Code Scanning ──────────────────
       - name: Upload Semgrep SARIF
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        if: always() && hashFiles('semgrep-results.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: semgrep-results.sarif
           category: semgrep-fast-gate
