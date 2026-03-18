@@ -1,0 +1,167 @@
+name: "Guardrails – Fast Gate"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stage 1 of the two-stage guardrails pipeline (Section 14).
+#
+# Goal  : block a PR within ~2 minutes if critical issues are present.
+# Scope : only files changed in the PR (diff-aware) — nothing full-scan.
+# Tools : Checkstyle (Java style, via Maven) + Semgrep (security/arch patterns)
+# Action: fails the PR check on severity=ERROR findings; warnings are ignored
+#         here (they are picked up by the companion issue-bot workflow).
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'backend/src/**/*.java'
+      - 'backend/checkstyle.xml'
+      - '.semgrep/**'
+      - '.github/workflows/guardrails-fast-gate.yml'
+
+concurrency:
+  group: guardrails-fast-gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  fast-gate:
+    name: "Fast Gate (Checkstyle + Semgrep)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10           # hard ceiling — gate must never stall CI
+
+    permissions:
+      contents: read
+      pull-requests: write        # to post an inline PR comment on failure
+
+    steps:
+      # ── 1. Checkout ───────────────────────────────────────────────────────
+      - name: Checkout PR branch (full history for diff)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # needed for accurate diff against base
+
+      # ── 2. Identify changed Java files ────────────────────────────────────
+      - name: Compute changed Java files
+        id: changed
+        run: |
+          BASE=${{ github.event.pull_request.base.sha }}
+          HEAD=${{ github.event.pull_request.head.sha }}
+          FILES=$(git diff --name-only "$BASE" "$HEAD" -- 'backend/src/**/*.java' | tr '\n' ' ')
+          echo "files=$FILES" >> "$GITHUB_OUTPUT"
+          echo "Changed Java files: $FILES"
+
+      # ── 3. Set up Java (cached) ───────────────────────────────────────────
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      # ── 4. Checkstyle (errors only) ───────────────────────────────────────
+      # Maven's checkstyle:check is bound to validate phase and reads the
+      # checkstyle.xml in the backend directory.  violationSeverity=error means
+      # only ERROR-level findings will fail the build; warnings are written to
+      # target/checkstyle-result.xml for the issue-bot to consume.
+      - name: Run Checkstyle (error-level findings block the PR)
+        id: checkstyle
+        working-directory: ./backend
+        run: |
+          mvn --no-transfer-progress checkstyle:check \
+            -Dcheckstyle.violationSeverity=error \
+            -Dcheckstyle.outputFile=target/checkstyle-result.xml \
+            -Dcheckstyle.consoleOutput=true
+        continue-on-error: true   # capture exit code; we decide below
+
+      # ── 5. Upload Checkstyle artefact (for issue-bot) ─────────────────────
+      - name: Upload Checkstyle XML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkstyle-result
+          path: backend/target/checkstyle-result.xml
+          retention-days: 3
+          if-no-files-found: ignore
+
+      # ── 6. Install Semgrep ────────────────────────────────────────────────
+      - name: Install Semgrep
+        run: pip install semgrep --quiet
+
+      # ── 7. Semgrep diff-aware scan (errors only) ──────────────────────────
+      # --diff-aware limits scanning to lines added/changed in this PR.
+      # --error causes a non-zero exit on any ERROR-severity finding.
+      # SARIF output is uploaded for GitHub Code Scanning + used by issue-bot.
+      - name: Run Semgrep (diff-aware, error-level findings block the PR)
+        id: semgrep
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}   # optional: enables Semgrep Cloud
+        run: |
+          semgrep \
+            --config .semgrep/skyhigh.yml \
+            --diff-aware \
+            --error \
+            --severity ERROR \
+            --sarif \
+            --output semgrep-results.sarif \
+            backend/src/main/java
+        continue-on-error: true   # capture exit code; we decide below
+
+      # ── 8. Upload Semgrep SARIF to GitHub Code Scanning ──────────────────
+      - name: Upload Semgrep SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep-results.sarif
+          category: semgrep-fast-gate
+        continue-on-error: true   # don't fail if SARIF is empty
+
+      # ── 9. Upload Semgrep SARIF artefact (for issue-bot) ─────────────────
+      - name: Upload Semgrep SARIF artefact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-results
+          path: semgrep-results.sarif
+          retention-days: 3
+          if-no-files-found: ignore
+
+      # ── 10. Post PR comment on failure ───────────────────────────────────
+      - name: Post failure comment on PR
+        if: steps.checkstyle.outcome == 'failure' || steps.semgrep.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const checkstyleFailed = '${{ steps.checkstyle.outcome }}' === 'failure';
+            const semgrepFailed    = '${{ steps.semgrep.outcome }}'    === 'failure';
+            const tools = [
+              checkstyleFailed ? '**Checkstyle**' : null,
+              semgrepFailed    ? '**Semgrep**'    : null,
+            ].filter(Boolean).join(' and ');
+
+            const body = `## ❌ Fast Gate blocked this PR
+
+            ${tools} found **critical (ERROR-level) issues** in the changed files.
+
+            **How to fix quickly with Copilot:**
+            1. Open the _Actions_ tab → click this run → expand the failing step to see exact violations.
+            2. For each violation, open the file in VS Code and use:
+               \`@workspace fix the [tool] violation in [File] line [N]\`
+            3. Push the fix — the gate re-runs automatically.
+
+            _Non-blocking warnings will be filed as \`copilot-fixable\` Issues by the companion bot._`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+
+      # ── 11. Fail the job if either tool found blocking issues ─────────────
+      - name: Enforce gate result
+        if: steps.checkstyle.outcome == 'failure' || steps.semgrep.outcome == 'failure'
+        run: |
+          echo "Fast Gate FAILED — critical issues must be resolved before merge."
+          exit 1

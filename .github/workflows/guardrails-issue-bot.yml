@@ -1,0 +1,236 @@
+name: "Guardrails – Issue Creation Bot"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stage 2 of the two-stage guardrails pipeline (Section 14).
+#
+# Goal  : convert non-blocking WARNING findings into GitHub Issues labelled
+#         `copilot-fixable` with a pre-filled Copilot Chat prompt, so that
+#         any developer can open the Issue in Copilot Chat and fix it in under
+#         a minute — directly from the browser.
+#
+# Trigger: runs AFTER the fast-gate job completes (workflow_run event), so it
+#          never adds latency to the PR feedback loop.
+#
+# Tools : Checkstyle (warning-level findings from the XML artefact)
+#         Semgrep    (WARNING-severity findings from the SARIF artefact)
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  workflow_run:
+    workflows: ["Guardrails – Fast Gate"]
+    types: [completed]
+
+jobs:
+  issue-bot:
+    name: "Issue Bot (Copilot-Fixable Warnings)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    # Only run when the fast-gate workflow was triggered by a PR
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion != 'skipped'
+
+    permissions:
+      contents: read
+      issues: write               # create / update Issues
+      actions: read               # download artefacts from the triggering run
+
+    steps:
+      # ── 1. Checkout (needed for github-script context) ────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 2. Download artefacts produced by the fast-gate run ───────────────
+      - name: Download Checkstyle artefact
+        uses: actions/download-artifact@v4
+        with:
+          name: checkstyle-result
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artefacts/checkstyle
+        continue-on-error: true   # artefact absent means no violations — skip
+
+      - name: Download Semgrep SARIF artefact
+        uses: actions/download-artifact@v4
+        with:
+          name: semgrep-results
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artefacts/semgrep
+        continue-on-error: true
+
+      # ── 3. Parse findings and create GitHub Issues ────────────────────────
+      - name: Parse findings and create copilot-fixable Issues
+        uses: actions/github-script@v7
+        env:
+          PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+          PR_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          PR_REPO: ${{ github.event.workflow_run.repository.full_name }}
+        with:
+          script: |
+            const fs   = require('fs');
+            const path = require('path');
+
+            // ── helpers ──────────────────────────────────────────────────
+            const LABEL        = 'copilot-fixable';
+            const prNumber     = process.env.PR_NUMBER;
+            const prHeadSha    = process.env.PR_HEAD_SHA;
+            const repoFullName = process.env.PR_REPO;
+            const [owner, repo] = repoFullName.split('/');
+
+            // Ensure the label exists (idempotent)
+            async function ensureLabel() {
+              try {
+                await github.rest.issues.getLabel({ owner, repo, name: LABEL });
+              } catch {
+                await github.rest.issues.createLabel({
+                  owner, repo,
+                  name:        LABEL,
+                  color:       '0075ca',
+                  description: 'Fixable with GitHub Copilot Chat in under a minute',
+                });
+              }
+            }
+
+            // Create an Issue only if an identical one isn't already open
+            async function createIssueIfNew(title, body) {
+              const existing = await github.rest.issues.listForRepo({
+                owner, repo,
+                state:  'open',
+                labels: LABEL,
+                per_page: 100,
+              });
+              const dupe = existing.data.find(i => i.title === title);
+              if (dupe) {
+                console.log(`Skipping duplicate issue: ${title}`);
+                return;
+              }
+              const { data } = await github.rest.issues.create({
+                owner, repo,
+                title,
+                body,
+                labels: [LABEL],
+              });
+              console.log(`Created issue #${data.number}: ${title}`);
+            }
+
+            await ensureLabel();
+
+            // ── Parse Checkstyle XML (WARNING-severity only) ─────────────
+            const checkstyleFile = 'artefacts/checkstyle/checkstyle-result.xml';
+            if (fs.existsSync(checkstyleFile)) {
+              const xml = fs.readFileSync(checkstyleFile, 'utf8');
+
+              // Lightweight regex parse — no external XML lib needed
+              // Matches: <file name="..."> ... <error line="N" ... severity="warning" message="..." source="..."/>
+              const fileRe  = /<file name="([^"]+)">([\s\S]*?)<\/file>/g;
+              const errorRe = /<error\s[^>]*severity="warning"[^>]*>/g;
+              const attrRe  = /(\w+)="([^"]*)"/g;
+
+              let fileMatch;
+              while ((fileMatch = fileRe.exec(xml)) !== null) {
+                const filePath   = fileMatch[1];
+                const fileBlock  = fileMatch[2];
+                const shortFile  = filePath.replace(/.*\/src\/main\/java\//, '').replace(/\//g, '.');
+
+                let errMatch;
+                while ((errMatch = errorRe.exec(fileBlock)) !== null) {
+                  const attrs = {};
+                  let a;
+                  while ((a = attrRe.exec(errMatch[0])) !== null) attrs[a[1]] = a[2];
+
+                  const line    = attrs.line    || '?';
+                  const message = attrs.message || 'Checkstyle violation';
+                  const source  = (attrs.source || '').split('.').pop();
+
+                  // Convert dot-notation class path back to a displayable file name
+                  const javaFile = shortFile.replace(/\./g, '/') + '.java';
+                  // Best-effort: extract just the simple class name for the prompt
+                  const simpleClass = shortFile.split('.').pop();
+
+                  const title = `[Checkstyle] ${source} in ${simpleClass} line ${line}`;
+                  const body  = `## Checkstyle Warning — \`${source}\`
+
+            **File:** \`${javaFile}\`
+            **Line:** ${line}
+            **Message:** ${message}
+
+            ---
+
+            ### Fix with Copilot Chat
+
+            Open this file in VS Code, then paste the prompt below into Copilot Chat:
+
+            \`\`\`
+            @workspace Fix the Checkstyle violation in ${simpleClass} line ${line}: ${message}
+            \`\`\`
+
+            ---
+
+            _Auto-filed by the Sky-High Guardrails Issue Bot from PR #${prNumber} (${prHeadSha.slice(0,7)})_`;
+
+                  await createIssueIfNew(title, body);
+                }
+              }
+            } else {
+              console.log('No Checkstyle artefact found — skipping.');
+            }
+
+            // ── Parse Semgrep SARIF (WARNING-severity only) ──────────────
+            const semgrepFile = 'artefacts/semgrep/semgrep-results.sarif';
+            if (fs.existsSync(semgrepFile)) {
+              const sarif = JSON.parse(fs.readFileSync(semgrepFile, 'utf8'));
+
+              for (const run of (sarif.runs || [])) {
+                const rules = Object.fromEntries(
+                  (run.tool?.driver?.rules || []).map(r => [r.id, r])
+                );
+
+                for (const result of (run.results || [])) {
+                  // Only process WARNING-level findings
+                  const level = result.level || 'warning';
+                  if (level !== 'warning') continue;
+
+                  const ruleId   = result.ruleId || 'unknown-rule';
+                  const rule     = rules[ruleId] || {};
+                  const message  = result.message?.text || rule.shortDescription?.text || ruleId;
+                  const location = result.locations?.[0]?.physicalLocation;
+                  const filePath = location?.artifactLocation?.uri || 'unknown-file';
+                  const line     = location?.region?.startLine || '?';
+                  const shortFile = filePath.replace(/.*\/src\/main\/java\//, '');
+                  const simpleClass = shortFile.replace(/\.java$/, '').split('/').pop();
+
+                  // Pull the copilot_prompt from rule metadata if present
+                  const copilotPrompt = rule.properties?.['copilot_prompt']
+                    || `@workspace Fix the Semgrep finding '${ruleId}' in ${simpleClass} line ${line}`;
+
+                  const title = `[Semgrep] ${ruleId} in ${simpleClass} line ${line}`;
+                  const body  = `## Semgrep Warning — \`${ruleId}\`
+
+            **File:** \`${shortFile}\`
+            **Line:** ${line}
+            **Message:** ${message}
+
+            ---
+
+            ### Fix with Copilot Chat
+
+            Open this file in VS Code, then paste the prompt below into Copilot Chat:
+
+            \`\`\`
+            ${copilotPrompt}
+            \`\`\`
+
+            ---
+
+            _Auto-filed by the Sky-High Guardrails Issue Bot from PR #${prNumber} (${prHeadSha.slice(0,7)})_`;
+
+                  await createIssueIfNew(title, body);
+                }
+              }
+            } else {
+              console.log('No Semgrep SARIF artefact found — skipping.');
+            }
+
+            console.log('Issue bot finished.');

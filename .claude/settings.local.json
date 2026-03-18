@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn clean:*)",
+      "Bash(mvn dependency:tree -Dincludes=org.projectlombok)",
+      "Bash(java -version)",
+      "Bash(javac -version)"
+    ]
+  }
+}

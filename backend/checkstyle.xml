@@ -1,0 +1,198 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+    "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+    "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<!--
+  Sky-High Checkstyle Configuration
+  Severity levels:
+    error   → blocking (fast-gate will fail the PR)
+    warning → non-blocking (issue-bot will file a copilot-fixable Issue)
+-->
+<module name="Checker">
+    <property name="severity" value="warning"/>
+    <property name="fileExtensions" value="java"/>
+
+    <!-- ===== FILE-LEVEL CHECKS ===== -->
+
+    <!-- No tab characters in source files -->
+    <module name="FileTabCharacter">
+        <property name="severity" value="error"/>
+    </module>
+
+    <!-- No trailing whitespace -->
+    <module name="RegexpSingleline">
+        <property name="format" value="\s+$"/>
+        <property name="message" value="Line has trailing whitespace."/>
+        <property name="severity" value="warning"/>
+    </module>
+
+    <!-- Files must end with a newline -->
+    <module name="NewlineAtEndOfFile">
+        <property name="severity" value="warning"/>
+    </module>
+
+    <!-- Line length: warn at 120, hard-block at 160 -->
+    <module name="LineLength">
+        <property name="max" value="120"/>
+        <property name="severity" value="warning"/>
+        <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://"/>
+    </module>
+
+    <module name="TreeWalker">
+
+        <!-- ===== NAMING CONVENTIONS (error — easy for Copilot to auto-fix) ===== -->
+
+        <module name="TypeName">
+            <property name="severity" value="error"/>
+        </module>
+
+        <module name="MethodName">
+            <property name="severity" value="error"/>
+        </module>
+
+        <module name="ConstantName">
+            <property name="severity" value="error"/>
+        </module>
+
+        <module name="LocalVariableName">
+            <property name="severity" value="warning"/>
+        </module>
+
+        <module name="MemberName">
+            <property name="severity" value="warning"/>
+        </module>
+
+        <module name="ParameterName">
+            <property name="severity" value="warning"/>
+        </module>
+
+        <!-- ===== IMPORTS ===== -->
+
+        <!-- Disallow wildcard imports -->
+        <module name="AvoidStarImport">
+            <property name="severity" value="error"/>
+        </module>
+
+        <!-- Disallow unused imports -->
+        <module name="UnusedImports">
+            <property name="severity" value="warning"/>
+        </module>
+
+        <!-- Disallow redundant imports -->
+        <module name="RedundantImport">
+            <property name="severity" value="error"/>
+        </module>
+
+        <!-- ===== CODING STYLE ===== -->
+
+        <!-- Braces required for all control structures -->
+        <module name="NeedBraces">
+            <property name="severity" value="error"/>
+        </module>
+
+        <!-- Left brace on same line -->
+        <module name="LeftCurly">
+            <property name="severity" value="warning"/>
+        </module>
+
+        <!-- Right brace placement -->
+        <module name="RightCurly">
+            <property name="severity" value="warning"/>
+        </module>
+
+        <!-- Whitespace around operators -->
+        <module name="WhitespaceAround">
+            <property name="severity" value="warning"/>
+            <property name="tokens" value="ASSIGN, BAND, BAND_ASSIGN, BOR, BOR_ASSIGN, BSR, BSR_ASSIGN, BXOR, BXOR_ASSIGN, COLON, DIV, DIV_ASSIGN, DO_WHILE, EQUAL, GE, GT, LAND, LCURLY, LE, LITERAL_CATCH, LITERAL_DO, LITERAL_ELSE, LITERAL_FINALLY, LITERAL_FOR, LITERAL_IF, LITERAL_RETURN, LITERAL_SWITCH, LITERAL_SYNCHRONIZED, LITERAL_TRY, LITERAL_WHILE, LOR, LT, MINUS, MINUS_ASSIGN, MOD, MOD_ASSIGN, NOT_EQUAL, PLUS, PLUS_ASSIGN, QUESTION, RCURLY, SL, SLIST, SL_ASSIGN, SR, SR_ASSIGN, STAR, STAR_ASSIGN, LITERAL_ASSERT, TYPE_EXTENSION_AND"/>
+        </module>
+
+        <!-- No empty blocks -->
+        <module name="EmptyBlock">
+            <property name="severity" value="warning"/>
+        </module>
+
+        <!-- No empty catch blocks (unless commented) -->
+        <module name="EmptyCatchBlock">
+            <property name="severity" value="error"/>
+            <property name="exceptionVariableName" value="expected|ignore"/>
+        </module>
+
+        <!-- Avoid magic numbers (warn only) -->
+        <module name="MagicNumber">
+            <property name="severity" value="warning"/>
+            <property name="ignoreNumbers" value="-1, 0, 1, 2, 100"/>
+            <property name="ignoreAnnotation" value="true"/>
+            <property name="ignoreHashCodeMethod" value="true"/>
+        </module>
+
+        <!-- ===== DESIGN & COMPLEXITY ===== -->
+
+        <!-- Cyclomatic complexity — warn at 10, block at 15 -->
+        <module name="CyclomaticComplexity">
+            <property name="max" value="10"/>
+            <property name="severity" value="warning"/>
+        </module>
+
+        <module name="CyclomaticComplexity">
+            <property name="id" value="CyclomaticComplexityError"/>
+            <property name="max" value="15"/>
+            <property name="severity" value="error"/>
+        </module>
+
+        <!-- Method length: warn at 50 lines, block at 100 -->
+        <module name="MethodLength">
+            <property name="max" value="50"/>
+            <property name="severity" value="warning"/>
+        </module>
+
+        <module name="MethodLength">
+            <property name="id" value="MethodLengthError"/>
+            <property name="max" value="100"/>
+            <property name="severity" value="error"/>
+        </module>
+
+        <!-- Number of parameters -->
+        <module name="ParameterNumber">
+            <property name="max" value="7"/>
+            <property name="severity" value="warning"/>
+        </module>
+
+        <!-- ===== JAVADOC (warning — Copilot auto-fill is excellent here) ===== -->
+
+        <module name="MissingJavadocMethod">
+            <property name="severity" value="warning"/>
+            <property name="scope" value="public"/>
+            <property name="minLineCount" value="3"/>
+            <property name="allowMissingPropertyJavadoc" value="true"/>
+            <property name="tokens" value="METHOD_DEF, ANNOTATION_FIELD_DEF"/>
+        </module>
+
+        <!-- ===== SECURITY SMELLS (blocking) ===== -->
+
+        <!-- No System.out / System.err (use SLF4J) -->
+        <module name="Regexp">
+            <property name="id" value="NoSystemOut"/>
+            <property name="format" value="System\.(out|err)\.print"/>
+            <property name="message" value="Use SLF4J logger instead of System.out/err."/>
+            <property name="severity" value="error"/>
+            <property name="illegalPattern" value="true"/>
+        </module>
+
+        <!-- No printStackTrace() -->
+        <module name="Regexp">
+            <property name="id" value="NoPrintStackTrace"/>
+            <property name="format" value="\.printStackTrace\(\)"/>
+            <property name="message" value="Use logger.error() instead of printStackTrace()."/>
+            <property name="severity" value="error"/>
+            <property name="illegalPattern" value="true"/>
+        </module>
+
+        <!-- No hardcoded TODO / FIXME left in critical paths (warning) -->
+        <module name="TodoComment">
+            <property name="format" value="(TODO|FIXME|HACK|XXX)"/>
+            <property name="severity" value="warning"/>
+        </module>
+
+    </module>
+</module>

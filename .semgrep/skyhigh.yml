@@ -1,0 +1,229 @@
+# Sky-High Semgrep ruleset
+# Severity guide:
+#   ERROR   → blocking (fast-gate fails the PR)
+#   WARNING → non-blocking (issue-bot files a copilot-fixable Issue)
+#
+# Run locally:   semgrep --config .semgrep/skyhigh.yml backend/src
+# CI (diff-aware): semgrep --config .semgrep/skyhigh.yml --diff-aware
+
+rules:
+
+  # ── SECURITY (blocking) ──────────────────────────────────────────────────
+
+  - id: no-hardcoded-password
+    patterns:
+      - pattern: |
+          String $VAR = "...";
+      - metavariable-regex:
+          metavariable: $VAR
+          regex: (?i)(password|passwd|secret|token|apikey|api_key|credential)
+    message: >
+      Hardcoded credential detected in variable '$VAR'.
+      Fix with: @workspace fix the hardcoded credential in $VAR and replace with
+      an environment variable reference using ${ENV_VAR:} pattern.
+    languages: [java]
+    severity: ERROR
+    metadata:
+      category: security
+      copilot_prompt: "Fix this with: @workspace replace the hardcoded value in '$VAR' with a Spring environment variable placeholder"
+
+  - id: no-sql-string-concat
+    pattern: |
+      $REPO.createQuery("..." + $INPUT)
+    message: >
+      Possible SQL injection via string concatenation.
+      Use parameterized queries or Spring Data JPA named parameters.
+    languages: [java]
+    severity: ERROR
+    metadata:
+      category: security
+      copilot_prompt: "Fix this with: @workspace replace the string-concatenated query with a parameterized JPA @Query"
+
+  - id: no-jdbc-string-concat
+    patterns:
+      - pattern: |
+          $STMT.executeQuery("..." + $INPUT)
+      - pattern: |
+          $STMT.execute("..." + $INPUT)
+    message: >
+      Possible SQL injection via JDBC string concatenation.
+      Use PreparedStatement with parameterized inputs.
+    languages: [java]
+    severity: ERROR
+    metadata:
+      category: security
+      copilot_prompt: "Fix this with: @workspace convert to PreparedStatement with parameterized inputs"
+
+  - id: no-object-deserialization
+    pattern: |
+      new ObjectInputStream($INPUT)
+    message: >
+      Unsafe Java deserialization can lead to RCE.
+      Use a safe serialization format (JSON, Protobuf) instead.
+    languages: [java]
+    severity: ERROR
+    metadata:
+      category: security
+      copilot_prompt: "Fix this with: @workspace replace ObjectInputStream deserialization with Jackson JSON parsing"
+
+  - id: no-md5-sha1
+    pattern-either:
+      - pattern: MessageDigest.getInstance("MD5")
+      - pattern: MessageDigest.getInstance("SHA-1")
+      - pattern: MessageDigest.getInstance("SHA1")
+    message: >
+      Weak cryptographic hash (MD5/SHA-1) detected.
+      Use SHA-256 or SHA-3 instead.
+    languages: [java]
+    severity: ERROR
+    metadata:
+      category: security
+      copilot_prompt: "Fix this with: @workspace replace MD5/SHA-1 with MessageDigest.getInstance(\"SHA-256\")"
+
+  - id: jwt-none-algorithm
+    pattern: |
+      Jwts.builder().$METHOD(...).compact()
+    pattern-not: |
+      Jwts.builder().$METHOD(...).signWith(...)$CHAIN.compact()
+    message: >
+      JWT built without a signing algorithm — tokens are unsigned and trivially forgeable.
+      Call signWith() with a strong key before compact().
+    languages: [java]
+    severity: ERROR
+    metadata:
+      category: security
+      copilot_prompt: "Fix this with: @workspace add .signWith(key, SignatureAlgorithm.HS256) to the JWT builder"
+
+  # ── SPRING BOOT BEST PRACTICES (blocking) ──────────────────────────────
+
+  - id: no-field-injection
+    pattern: |
+      @Autowired
+      private $TYPE $FIELD;
+    message: >
+      Field injection (@Autowired on a private field) detected.
+      Use constructor injection for testability and immutability.
+    languages: [java]
+    severity: ERROR
+    metadata:
+      category: best-practice
+      copilot_prompt: "Fix this with: @workspace convert field injection of '$FIELD' to constructor injection"
+
+  - id: controller-business-logic
+    patterns:
+      - pattern: |
+          @RestController
+          class $CLASS {
+            ...
+            $TYPE $METHOD(...) {
+              ...
+              $REPO.save(...);
+              ...
+            }
+            ...
+          }
+    message: >
+      Repository call detected directly inside a @RestController method.
+      Move business logic to the service layer.
+    languages: [java]
+    severity: ERROR
+    metadata:
+      category: architecture
+      copilot_prompt: "Fix this with: @workspace move the repository call in $CLASS.$METHOD to a service class"
+
+  - id: transactional-on-interface
+    pattern: |
+      @Transactional
+      interface $IFACE { ... }
+    message: >
+      @Transactional on an interface has no effect with CGLIB proxies.
+      Move @Transactional to the concrete implementation class.
+    languages: [java]
+    severity: ERROR
+    metadata:
+      category: best-practice
+      copilot_prompt: "Fix this with: @workspace move @Transactional from the interface to the implementation class"
+
+  # ── CODE SMELLS (warning — filed as copilot-fixable Issues) ─────────────
+
+  - id: todo-fixme-comment
+    pattern-either:
+      - pattern: |
+          // TODO $MSG
+      - pattern: |
+          // FIXME $MSG
+      - pattern: |
+          // HACK $MSG
+    message: >
+      Unresolved TODO/FIXME/HACK comment found.
+      Address or convert to a tracked GitHub Issue.
+    languages: [java]
+    severity: WARNING
+    metadata:
+      category: maintainability
+      copilot_prompt: "Fix this with: @workspace resolve the TODO comment or extract it to a GitHub Issue"
+
+  - id: system-out-print
+    pattern-either:
+      - pattern: System.out.println(...)
+      - pattern: System.err.println(...)
+      - pattern: System.out.print(...)
+    message: >
+      System.out/err usage found. Use SLF4J (log.info / log.error) instead.
+    languages: [java]
+    severity: WARNING
+    metadata:
+      category: maintainability
+      copilot_prompt: "Fix this with: @workspace replace System.out.println with log.info() using SLF4J"
+
+  - id: empty-catch-block
+    pattern: |
+      try {
+        ...
+      } catch ($E $EX) {
+      }
+    message: >
+      Empty catch block silently swallows the exception.
+      At minimum log the error or rethrow as a domain exception.
+    languages: [java]
+    severity: WARNING
+    metadata:
+      category: reliability
+      copilot_prompt: "Fix this with: @workspace add proper error handling to the empty catch block"
+
+  - id: magic-timeout-value
+    patterns:
+      - pattern: |
+          Thread.sleep($N);
+      - metavariable-comparison:
+          metavariable: $N
+          comparison: $N > 100
+    message: >
+      Magic number used in Thread.sleep(). Extract to a named constant or configuration property.
+    languages: [java]
+    severity: WARNING
+    metadata:
+      category: maintainability
+      copilot_prompt: "Fix this with: @workspace extract the sleep duration to a named constant or @Value config property"
+
+  - id: nullable-return-not-annotated
+    patterns:
+      - pattern: |
+          public $TYPE $METHOD(...) {
+            ...
+            return null;
+            ...
+          }
+      - pattern-not: |
+          @Nullable
+          public $TYPE $METHOD(...) { ... }
+      - pattern-not: |
+          public Optional<$TYPE> $METHOD(...) { ... }
+    message: >
+      Method returns null but is not annotated with @Nullable or returning Optional<T>.
+      Consider returning Optional to make the contract explicit.
+    languages: [java]
+    severity: WARNING
+    metadata:
+      category: maintainability
+      copilot_prompt: "Fix this with: @workspace change the return type to Optional<$TYPE> or add @Nullable annotation"

@@ -37,7 +37,7 @@ public class WaitlistController {
         
         logger.info("Request to join waitlist for seat {} on flight {} by passenger {}", 
             seatNumber, flightId, request.getPassengerId());
-        
+        System.out.println("Request to join waitlist for seat " + seatNumber + " on flight " + flightId + " by passenger " + request.getPassengerId());
         WaitlistResponseDTO response = waitlistService.joinWaitlist(
             request.getPassengerId(), flightId, seatNumber);
         
