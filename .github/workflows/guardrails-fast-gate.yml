@@ -174,121 +174,123 @@ jobs:
           echo "=== Checkstyle XML ==="
           ls -lh backend/target/checkstyle-result.xml 2>/dev/null || echo "checkstyle-result.xml NOT FOUND"
 
-      # ── 12. Create copilot-fixable Issues from ERROR findings ─────────────
-      # Embedded here (not in companion issue-bot) because workflow_run events
-      # only fire for workflows on the default branch.
+      # ── 12. Parse findings into issues.json ──────────────────────────────
+      # Use Python (already installed) to parse SARIF/XML into a simple JSON
+      # list so the github-script step has clean, pre-processed input.
+      - name: Parse findings into issues.json
+        if: always()
+        run: |
+          python3 - <<'PYEOF'
+          import json, re, os, xml.etree.ElementTree as ET
+
+          findings = []
+
+          # ── Semgrep SARIF ──────────────────────────────────────────────
+          sarif_path = 'semgrep-results.sarif'
+          if os.path.exists(sarif_path):
+            with open(sarif_path) as f:
+              sarif = json.load(f)
+            for run in sarif.get('runs', []):
+              rules = {r['id']: r for r in run.get('tool', {}).get('driver', {}).get('rules', [])}
+              for result in run.get('results', []):
+                rule_id = result.get('ruleId', 'unknown')
+                rule    = rules.get(rule_id, {})
+                level   = (result.get('level') or
+                           rule.get('defaultConfiguration', {}).get('level', 'warning')).lower()
+                print(f'  Semgrep result: {rule_id} level={level}')
+                if level != 'error':
+                  continue
+                loc       = (result.get('locations') or [{}])[0].get('physicalLocation', {})
+                file_uri  = loc.get('artifactLocation', {}).get('uri', 'unknown')
+                line      = loc.get('region', {}).get('startLine', '?')
+                short     = re.sub(r'.*/src/main/java/', '', file_uri)
+                cls       = short.replace('.java', '').split('/')[-1]
+                message   = result.get('message', {}).get('text', rule_id).strip()
+                prompt    = (rule.get('properties') or {}).get('copilot_prompt') or \
+                            f"@workspace Fix the Semgrep finding '{rule_id}' in {cls} line {line}"
+                findings.append({
+                  'title': f'[Semgrep] {rule_id} in {cls} line {line}',
+                  'body':  f'## Semgrep ERROR — `{rule_id}`\n\n> 🔴 ERROR — this finding **blocked the PR**\n\n**File:** `{short}`\n**Line:** {line}\n**Message:** {message}\n\n---\n\n### Fix with Copilot Chat\n\n```\n{prompt}\n```\n'
+                })
+            print(f'Semgrep: {len(findings)} ERROR findings')
+          else:
+            print('semgrep-results.sarif not found')
+
+          # ── Checkstyle XML ─────────────────────────────────────────────
+          cs_path = 'backend/target/checkstyle-result.xml'
+          cs_count = 0
+          if os.path.exists(cs_path):
+            tree = ET.parse(cs_path)
+            for file_el in tree.getroot().findall('file'):
+              file_path = file_el.get('name', '')
+              short     = re.sub(r'.*/src/main/java/', '', file_path).replace('/', '.')
+              cls       = short.split('.')[-1] if '.' in short else short
+              java_file = short.replace('.', '/') + '.java'
+              for err in file_el.findall('error'):
+                if (err.get('severity') or '').lower() != 'error':
+                  continue
+                line    = err.get('line', '?')
+                message = err.get('message', 'Checkstyle violation')
+                source  = (err.get('source') or '').split('.')[-1]
+                findings.append({
+                  'title': f'[Checkstyle] {source} in {cls} line {line}',
+                  'body':  f'## Checkstyle ERROR — `{source}`\n\n> 🔴 ERROR — this finding **blocked the PR**\n\n**File:** `{java_file}`\n**Line:** {line}\n**Message:** {message}\n\n---\n\n### Fix with Copilot Chat\n\n```\n@workspace Fix the Checkstyle violation in {cls} line {line}: {message}\n```\n'
+                })
+                cs_count += 1
+            print(f'Checkstyle: {cs_count} ERROR findings')
+          else:
+            print('checkstyle-result.xml not found')
+
+          with open('issues-to-create.json', 'w') as f:
+            json.dump(findings, f)
+          print(f'Total findings to file as issues: {len(findings)}')
+          PYEOF
+
+      # ── 13. Create copilot-fixable Issues from issues.json ────────────────
       - name: Create copilot-fixable Issues from findings
         if: always()
-        continue-on-error: true   # never let issue creation block the gate result
+        continue-on-error: true
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
             const { owner, repo } = context.repo;
             const LABEL    = 'copilot-fixable';
-            const prNumber = context.issue.number || context.payload.pull_request?.number || '?';
+            const prNumber = context.issue.number || '?';
             const shortSha = '${{ github.event.pull_request.head.sha }}'.slice(0, 7);
 
-            async function ensureLabel() {
-              try { await github.rest.issues.getLabel({ owner, repo, name: LABEL }); }
-              catch {
-                await github.rest.issues.createLabel({
-                  owner, repo, name: LABEL,
-                  color: '0075ca',
-                  description: 'Fixable with GitHub Copilot Chat in under a minute',
-                });
-              }
+            if (!fs.existsSync('issues-to-create.json')) {
+              console.log('issues-to-create.json not found — nothing to file');
+              return;
             }
+            const findings = JSON.parse(fs.readFileSync('issues-to-create.json', 'utf8'));
+            console.log(`Findings to create issues for: ${findings.length}`);
+            if (findings.length === 0) return;
 
-            async function createIssueIfNew(title, body) {
-              const { data: existing } = await github.rest.issues.listForRepo({
-                owner, repo, state: 'open', labels: LABEL, per_page: 100,
+            try { await github.rest.issues.getLabel({ owner, repo, name: LABEL }); }
+            catch {
+              await github.rest.issues.createLabel({
+                owner, repo, name: LABEL, color: '0075ca',
+                description: 'Fixable with GitHub Copilot Chat in under a minute',
               });
-              if (existing.find(i => i.title === title)) {
-                console.log(`Skipping duplicate: ${title}`); return;
-              }
-              const { data } = await github.rest.issues.create({ owner, repo, title, body, labels: [LABEL] });
-              console.log(`Created issue #${data.number}: ${title}`);
             }
 
-            await ensureLabel();
+            const { data: existing } = await github.rest.issues.listForRepo({
+              owner, repo, state: 'open', labels: LABEL, per_page: 100,
+            });
+            const existingTitles = new Set(existing.map(i => i.title));
 
-            // ── Checkstyle XML — ERROR severity only ──────────────────────
-            const checkstyleFile = 'backend/target/checkstyle-result.xml';
-            console.log(`Checkstyle file exists: ${fs.existsSync(checkstyleFile)}`);
-            if (fs.existsSync(checkstyleFile)) {
-              const xml      = fs.readFileSync(checkstyleFile, 'utf8');
-              console.log(`Checkstyle XML length: ${xml.length}`);
-              const fileRe   = /<file name="([^"]+)">([\s\S]*?)<\/file>/g;
-              const errorRe  = /<error\s[^>]*severity="error"[^>]*>/gi;
-              const attrRe   = /(\w+)="([^"]*)"/g;
-              let fileMatch;
-              while ((fileMatch = fileRe.exec(xml)) !== null) {
-                const filePath    = fileMatch[1];
-                const fileBlock   = fileMatch[2];
-                const shortFile   = filePath.replace(/.*\/src\/main\/java\//, '').replace(/\//g, '.');
-                const simpleClass = shortFile.split('.').pop();
-                const javaFile    = shortFile.replace(/\./g, '/') + '.java';
-                errorRe.lastIndex = 0;
-                let errMatch;
-                while ((errMatch = errorRe.exec(fileBlock)) !== null) {
-                  const attrs = {};
-                  attrRe.lastIndex = 0;
-                  let a;
-                  while ((a = attrRe.exec(errMatch[0])) !== null) attrs[a[1]] = a[2];
-                  const line    = attrs.line    || '?';
-                  const message = attrs.message || 'Checkstyle violation';
-                  const source  = (attrs.source || '').split('.').pop();
-                  const title   = `[Checkstyle] ${source} in ${simpleClass} line ${line}`;
-                  const body    = `## Checkstyle ERROR — \`${source}\`\n\n> 🔴 ERROR — this finding **blocked the PR**\n\n**File:** \`${javaFile}\`\n**Line:** ${line}\n**Message:** ${message}\n\n---\n\n### Fix with Copilot Chat\n\n\`\`\`\n@workspace Fix the Checkstyle violation in ${simpleClass} line ${line}: ${message}\n\`\`\`\n\n---\n_Auto-filed by Guardrails Fast Gate from PR #${prNumber} (${shortSha})_`;
-                  await createIssueIfNew(title, body);
-                }
+            for (const f of findings) {
+              if (existingTitles.has(f.title)) {
+                console.log(`Skipping duplicate: ${f.title}`); continue;
               }
-              console.log('Checkstyle parsing complete.');
-            }
-
-            // ── Semgrep SARIF — ERROR level only ──────────────────────────
-            const semgrepFile = 'semgrep-results.sarif';
-            console.log(`Semgrep SARIF exists: ${fs.existsSync(semgrepFile)}`);
-            if (fs.existsSync(semgrepFile)) {
-              const raw = fs.readFileSync(semgrepFile, 'utf8').trim();
-              console.log(`Semgrep SARIF length: ${raw.length}`);
-              if (raw && raw !== '{}') {
-                const sarif = JSON.parse(raw);
-                for (const run of (sarif.runs || [])) {
-                  const rules = Object.fromEntries((run.tool?.driver?.rules || []).map(r => [r.id, r]));
-                  console.log(`Semgrep results count: ${(run.results || []).length}`);
-                  for (const result of (run.results || [])) {
-                    const ruleId = result.ruleId || 'unknown-rule';
-                    const rule   = rules[ruleId] || {};
-                    // result.level is often absent in Semgrep SARIF — fall back
-                    // to the rule's defaultConfiguration.level
-                    const level  = (
-                      result.level ||
-                      rule.defaultConfiguration?.level ||
-                      'warning'
-                    ).toLowerCase();
-                    console.log(`  result: ${ruleId} level=${level}`);
-                    if (level !== 'error') continue;
-                    const message     = result.message?.text || rule.shortDescription?.text || ruleId;
-                    const location    = result.locations?.[0]?.physicalLocation;
-                    const filePath    = location?.artifactLocation?.uri || 'unknown-file';
-                    const line        = location?.region?.startLine || '?';
-                    const shortFile   = filePath.replace(/.*\/src\/main\/java\//, '');
-                    const simpleClass = shortFile.replace(/\.java$/, '').split('/').pop();
-                    const copilotPrompt = rule.properties?.copilot_prompt
-                      || `@workspace Fix the Semgrep finding '${ruleId}' in ${simpleClass} line ${line}`;
-                    const title = `[Semgrep] ${ruleId} in ${simpleClass} line ${line}`;
-                    const body  = `## Semgrep ERROR — \`${ruleId}\`\n\n> 🔴 ERROR — this finding **blocked the PR**\n\n**File:** \`${shortFile}\`\n**Line:** ${line}\n**Message:** ${message}\n\n---\n\n### Fix with Copilot Chat\n\n\`\`\`\n${copilotPrompt}\n\`\`\`\n\n---\n_Auto-filed by Guardrails Fast Gate from PR #${prNumber} (${shortSha})_`;
-                    await createIssueIfNew(title, body);
-                  }
-                }
-              }
-              console.log('Semgrep parsing complete.');
+              const body = f.body + `\n_Auto-filed by Guardrails Fast Gate from PR #${prNumber} (${shortSha})_`;
+              const { data } = await github.rest.issues.create({ owner, repo, title: f.title, body, labels: [LABEL] });
+              console.log(`Created issue #${data.number}: ${f.title}`);
             }
             console.log('Issue creation complete.');
 
-      # ── 13. Fail the job if either tool found blocking issues ─────────────
+      # ── 14. Fail the job if either tool found blocking issues ─────────────
       - name: Enforce gate result
         if: steps.checkstyle.outcome == 'failure' || steps.semgrep.outcome == 'failure'
         run: |
