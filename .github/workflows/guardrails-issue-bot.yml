@@ -3,16 +3,17 @@ name: "Guardrails – Issue Creation Bot"
 # ─────────────────────────────────────────────────────────────────────────────
 # Stage 2 of the two-stage guardrails pipeline (Section 14).
 #
-# Goal  : convert ERROR findings that blocked the PR into GitHub Issues labelled
-#         `copilot-fixable` with a pre-filled Copilot Chat prompt, so that
-#         any developer can open the Issue in Copilot Chat and fix it in under
-#         a minute — directly from the browser.
+# Goal  : convert findings that blocked (or warned in) the PR into GitHub
+#         Issues labelled `copilot-fixable` with a pre-filled Copilot Chat
+#         prompt, so that any developer can fix it in under a minute.
+#
+#         ERROR findings   → these blocked the PR; Issues are filed to track them.
+#         WARNING findings → non-blocking; Issues are filed as tech-debt items.
 #
 # Trigger: runs AFTER the fast-gate job completes (workflow_run event), so it
 #          never adds latency to the PR feedback loop.
 #
-# Tools : Checkstyle (error-level findings from the XML artefact)
-#         Semgrep    (ERROR-severity findings from the SARIF artefact)
+# Tools : Checkstyle (from XML artefact) + Semgrep (from SARIF artefact)
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
@@ -26,22 +27,50 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
-    # Only run when the fast-gate workflow was triggered by a PR
+    # Only run when the fast-gate was triggered by a pull_request event.
+    # Run regardless of conclusion so warnings also get filed on passing PRs.
     if: >
       github.event.workflow_run.event == 'pull_request' &&
-      github.event.workflow_run.conclusion != 'skipped'
+      github.event.workflow_run.conclusion != 'skipped' &&
+      github.event.workflow_run.conclusion != 'cancelled'
 
     permissions:
       contents: read
       issues: write               # create / update Issues
       actions: read               # download artefacts from the triggering run
+      pull-requests: read         # resolve PR number from the triggering run
 
     steps:
-      # ── 1. Checkout (needed for github-script context) ────────────────────
+      # ── 1. Checkout ───────────────────────────────────────────────────────
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ── 2. Download artefacts produced by the fast-gate run ───────────────
+      # ── 2. Resolve the PR number from the triggering workflow run ─────────
+      # workflow_run.pull_requests[] is empty for fork PRs and is unreliable
+      # in general. The safe approach is to query the API for open PRs whose
+      # head SHA matches the workflow run's head SHA.
+      - name: Resolve PR number
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const headSha = '${{ github.event.workflow_run.head_sha }}';
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              state: 'open',
+              per_page: 10,
+            });
+            const pr = prs.find(p => p.head.sha === headSha);
+            if (pr) {
+              core.setOutput('number', String(pr.number));
+              console.log(`Resolved PR #${pr.number} for SHA ${headSha}`);
+            } else {
+              core.setOutput('number', '');
+              console.log(`No open PR found for SHA ${headSha} — issues will be filed without PR reference.`);
+            }
+
+      # ── 3. Download artefacts produced by the fast-gate run ───────────────
       - name: Download Checkstyle artefact
         uses: actions/download-artifact@v4
         with:
@@ -49,7 +78,7 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: artefacts/checkstyle
-        continue-on-error: true   # artefact absent means no violations — skip
+        continue-on-error: true   # absent = no violations → skip gracefully
 
       - name: Download Semgrep SARIF artefact
         uses: actions/download-artifact@v4
@@ -60,24 +89,22 @@ jobs:
           path: artefacts/semgrep
         continue-on-error: true
 
-      # ── 3. Parse findings and create GitHub Issues ────────────────────────
+      # ── 4. Parse findings and create GitHub Issues ────────────────────────
       - name: Parse findings and create copilot-fixable Issues
         uses: actions/github-script@v7
         env:
-          PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+          PR_NUMBER:   ${{ steps.pr.outputs.number }}
           PR_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
-          PR_REPO: ${{ github.event.workflow_run.repository.full_name }}
         with:
           script: |
-            const fs   = require('fs');
-            const path = require('path');
+            const fs = require('fs');
 
-            // ── helpers ──────────────────────────────────────────────────
-            const LABEL        = 'copilot-fixable';
-            const prNumber     = process.env.PR_NUMBER;
-            const prHeadSha    = process.env.PR_HEAD_SHA;
-            const repoFullName = process.env.PR_REPO;
-            const [owner, repo] = repoFullName.split('/');
+            // ── helpers ────────────────────────────────────────────────────
+            const LABEL      = 'copilot-fixable';
+            const prNumber   = process.env.PR_NUMBER   || '(unknown)';
+            const prHeadSha  = process.env.PR_HEAD_SHA || '';
+            const shortSha   = prHeadSha.slice(0, 7);
+            const { owner, repo } = context.repo;
 
             // Ensure the label exists (idempotent)
             async function ensureLabel() {
@@ -93,64 +120,72 @@ jobs:
               }
             }
 
-            // Create an Issue only if an identical one isn't already open
-            async function createIssueIfNew(title, body) {
+            // Create an Issue only if an identical open one doesn't already exist
+            async function createIssueIfNew(title, body, extraLabels = []) {
               const existing = await github.rest.issues.listForRepo({
                 owner, repo,
-                state:  'open',
-                labels: LABEL,
+                state:    'open',
+                labels:   LABEL,
                 per_page: 100,
               });
-              const dupe = existing.data.find(i => i.title === title);
-              if (dupe) {
-                console.log(`Skipping duplicate issue: ${title}`);
+              if (existing.data.find(i => i.title === title)) {
+                console.log(`Skipping duplicate: ${title}`);
                 return;
               }
               const { data } = await github.rest.issues.create({
                 owner, repo,
                 title,
                 body,
-                labels: [LABEL],
+                labels: [LABEL, ...extraLabels],
               });
               console.log(`Created issue #${data.number}: ${title}`);
             }
 
+            // Build the PR reference footer
+            const prRef = prNumber !== '(unknown)'
+              ? `PR #${prNumber} (${shortSha})`
+              : `commit ${shortSha}`;
+
             await ensureLabel();
 
-            // ── Parse Checkstyle XML (WARNING-severity only) ─────────────
+            // ── Parse Checkstyle XML ───────────────────────────────────────
+            // Files issues for BOTH error and warning severity findings.
+            // ERROR findings blocked the PR; WARNING findings are tech-debt.
             const checkstyleFile = 'artefacts/checkstyle/checkstyle-result.xml';
             if (fs.existsSync(checkstyleFile)) {
               const xml = fs.readFileSync(checkstyleFile, 'utf8');
 
-              // Lightweight regex parse — no external XML lib needed
-              // Matches: <file name="..."> ... <error line="N" ... severity="warning" message="..." source="..."/>
               const fileRe  = /<file name="([^"]+)">([\s\S]*?)<\/file>/g;
-              const errorRe = /<error\s[^>]*severity="error"[^>]*>/g;
+              // Match both error and warning severity
+              const errorRe = /<error\s[^>]*severity="(?:error|warning)"[^>]*>/gi;
               const attrRe  = /(\w+)="([^"]*)"/g;
 
               let fileMatch;
               while ((fileMatch = fileRe.exec(xml)) !== null) {
-                const filePath   = fileMatch[1];
-                const fileBlock  = fileMatch[2];
-                const shortFile  = filePath.replace(/.*\/src\/main\/java\//, '').replace(/\//g, '.');
+                const filePath  = fileMatch[1];
+                const fileBlock = fileMatch[2];
+                const shortFile = filePath.replace(/.*\/src\/main\/java\//, '').replace(/\//g, '.');
 
                 let errMatch;
+                errorRe.lastIndex = 0;
                 while ((errMatch = errorRe.exec(fileBlock)) !== null) {
                   const attrs = {};
                   let a;
+                  attrRe.lastIndex = 0;
                   while ((a = attrRe.exec(errMatch[0])) !== null) attrs[a[1]] = a[2];
 
-                  const line    = attrs.line    || '?';
-                  const message = attrs.message || 'Checkstyle violation';
-                  const source  = (attrs.source || '').split('.').pop();
-
-                  // Convert dot-notation class path back to a displayable file name
-                  const javaFile = shortFile.replace(/\./g, '/') + '.java';
-                  // Best-effort: extract just the simple class name for the prompt
+                  const severity  = (attrs.severity || 'warning').toLowerCase();
+                  const line      = attrs.line    || '?';
+                  const message   = attrs.message || 'Checkstyle violation';
+                  const source    = (attrs.source || '').split('.').pop();
+                  const javaFile  = shortFile.replace(/\./g, '/') + '.java';
                   const simpleClass = shortFile.split('.').pop();
+                  const severityLabel = severity === 'error' ? '🔴 ERROR' : '🟡 WARNING';
 
                   const title = `[Checkstyle] ${source} in ${simpleClass} line ${line}`;
-                  const body  = `## Checkstyle Warning — \`${source}\`
+                  const body  = `## Checkstyle ${severity.toUpperCase()} — \`${source}\`
+
+            > ${severityLabel} ${severity === 'error' ? '— this finding **blocked the PR**' : '— non-blocking, tracked as tech-debt'}
 
             **File:** \`${javaFile}\`
             **Line:** ${line}
@@ -168,45 +203,56 @@ jobs:
 
             ---
 
-            _Auto-filed by the Sky-High Guardrails Issue Bot from PR #${prNumber} (${prHeadSha.slice(0,7)})_`;
+            _Auto-filed by the Sky-High Guardrails Issue Bot from ${prRef}_`;
 
                   await createIssueIfNew(title, body);
                 }
               }
+              console.log('Checkstyle parsing complete.');
             } else {
               console.log('No Checkstyle artefact found — skipping.');
             }
 
-            // ── Parse Semgrep SARIF (WARNING-severity only) ──────────────
+            // ── Parse Semgrep SARIF ────────────────────────────────────────
+            // Files issues for BOTH error and warning level findings.
+            // In SARIF, Semgrep maps severity like:
+            //   ERROR   → level: "error"
+            //   WARNING → level: "warning"  (or omitted, defaults to "warning")
             const semgrepFile = 'artefacts/semgrep/semgrep-results.sarif';
             if (fs.existsSync(semgrepFile)) {
-              const sarif = JSON.parse(fs.readFileSync(semgrepFile, 'utf8'));
+              const raw = fs.readFileSync(semgrepFile, 'utf8').trim();
+              if (!raw || raw === '{}' || raw === '') {
+                console.log('Semgrep SARIF is empty — no findings to file.');
+              } else {
+                const sarif = JSON.parse(raw);
 
-              for (const run of (sarif.runs || [])) {
-                const rules = Object.fromEntries(
-                  (run.tool?.driver?.rules || []).map(r => [r.id, r])
-                );
+                for (const run of (sarif.runs || [])) {
+                  const rules = Object.fromEntries(
+                    (run.tool?.driver?.rules || []).map(r => [r.id, r])
+                  );
 
-                for (const result of (run.results || [])) {
-                  // Only process ERROR-level findings
-                  const level = result.level || 'error';
-                  if (level !== 'error') continue;
+                  for (const result of (run.results || [])) {
+                    // Accept both error and warning level findings
+                    const level = (result.level || 'warning').toLowerCase();
+                    if (level !== 'error' && level !== 'warning') continue;
 
-                  const ruleId   = result.ruleId || 'unknown-rule';
-                  const rule     = rules[ruleId] || {};
-                  const message  = result.message?.text || rule.shortDescription?.text || ruleId;
-                  const location = result.locations?.[0]?.physicalLocation;
-                  const filePath = location?.artifactLocation?.uri || 'unknown-file';
-                  const line     = location?.region?.startLine || '?';
-                  const shortFile = filePath.replace(/.*\/src\/main\/java\//, '');
-                  const simpleClass = shortFile.replace(/\.java$/, '').split('/').pop();
+                    const ruleId    = result.ruleId || 'unknown-rule';
+                    const rule      = rules[ruleId] || {};
+                    const message   = result.message?.text || rule.shortDescription?.text || ruleId;
+                    const location  = result.locations?.[0]?.physicalLocation;
+                    const filePath  = location?.artifactLocation?.uri || 'unknown-file';
+                    const line      = location?.region?.startLine || '?';
+                    const shortFile = filePath.replace(/.*\/src\/main\/java\//, '');
+                    const simpleClass = shortFile.replace(/\.java$/, '').split('/').pop();
+                    const severityLabel = level === 'error' ? '🔴 ERROR' : '🟡 WARNING';
 
-                  // Pull the copilot_prompt from rule metadata if present
-                  const copilotPrompt = rule.properties?.['copilot_prompt']
-                    || `@workspace Fix the Semgrep finding '${ruleId}' in ${simpleClass} line ${line}`;
+                    const copilotPrompt = rule.properties?.['copilot_prompt']
+                      || `@workspace Fix the Semgrep finding '${ruleId}' in ${simpleClass} line ${line}`;
 
-                  const title = `[Semgrep] ${ruleId} in ${simpleClass} line ${line}`;
-                  const body  = `## Semgrep Warning — \`${ruleId}\`
+                    const title = `[Semgrep] ${ruleId} in ${simpleClass} line ${line}`;
+                    const body  = `## Semgrep ${level.toUpperCase()} — \`${ruleId}\`
+
+            > ${severityLabel} ${level === 'error' ? '— this finding **blocked the PR**' : '— non-blocking, tracked as tech-debt'}
 
             **File:** \`${shortFile}\`
             **Line:** ${line}
@@ -224,11 +270,13 @@ jobs:
 
             ---
 
-            _Auto-filed by the Sky-High Guardrails Issue Bot from PR #${prNumber} (${prHeadSha.slice(0,7)})_`;
+            _Auto-filed by the Sky-High Guardrails Issue Bot from ${prRef}_`;
 
-                  await createIssueIfNew(title, body);
+                    await createIssueIfNew(title, body);
+                  }
                 }
               }
+              console.log('Semgrep SARIF parsing complete.');
             } else {
               console.log('No Semgrep SARIF artefact found — skipping.');
             }

@@ -4,7 +4,8 @@ name: "Guardrails – Fast Gate"
 # Stage 1 of the two-stage guardrails pipeline (Section 14).
 #
 # Goal  : block a PR within ~2 minutes if critical issues are present.
-# Scope : only files changed in the PR (diff-aware) — nothing full-scan.
+# Scope : Checkstyle always runs full-project; Semgrep scopes to changed Java
+#         files (or full backend/src if no Java diff is detected).
 # Tools : Checkstyle (Java style, via Maven) + Semgrep (security/arch patterns)
 # Action: fails the PR check on severity=ERROR findings; warnings are ignored
 #         here (they are picked up by the companion issue-bot workflow).
@@ -15,11 +16,8 @@ on:
     branches:
       - main
       - develop
-    paths:
-      - 'backend/src/**/*.java'
-      - 'backend/checkstyle.xml'
-      - '.semgrep/**'
-      - '.github/workflows/guardrails-fast-gate.yml'
+    # No paths filter — gate runs on every PR so it cannot be silently bypassed
+    # by only changing workflow/config files.
 
 concurrency:
   group: guardrails-fast-gate-${{ github.event.pull_request.number }}
@@ -34,6 +32,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write        # to post an inline PR comment on failure
+      security-events: write      # required for upload-sarif
 
     steps:
       # ── 1. Checkout ───────────────────────────────────────────────────────
@@ -43,6 +42,9 @@ jobs:
           fetch-depth: 0          # needed for accurate diff against base
 
       # ── 2. Identify changed Java files ────────────────────────────────────
+      # Produces two outputs:
+      #   files      – space-separated list of changed .java paths (may be empty)
+      #   has_java   – "true" / "false" for conditional steps
       - name: Compute changed Java files
         id: changed
         run: |
@@ -50,7 +52,13 @@ jobs:
           HEAD=${{ github.event.pull_request.head.sha }}
           FILES=$(git diff --name-only "$BASE" "$HEAD" | grep '\.java$' | tr '\n' ' ')
           echo "files=$FILES" >> "$GITHUB_OUTPUT"
-          echo "Changed Java files: $FILES"
+          if [ -n "$FILES" ]; then
+            echo "has_java=true"  >> "$GITHUB_OUTPUT"
+            echo "Changed Java files: $FILES"
+          else
+            echo "has_java=false" >> "$GITHUB_OUTPUT"
+            echo "No changed Java files — Semgrep will scan full backend/src/main/java."
+          fi
 
       # ── 3. Set up Java (cached) ───────────────────────────────────────────
       - name: Set up JDK 17
@@ -60,11 +68,9 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      # ── 4. Checkstyle (errors only) ───────────────────────────────────────
-      # Maven's checkstyle:check is bound to validate phase and reads the
-      # checkstyle.xml in the backend directory.  violationSeverity=error means
-      # only ERROR-level findings will fail the build; warnings are written to
-      # target/checkstyle-result.xml for the issue-bot to consume.
+      # ── 4. Checkstyle (errors only, always full-project) ─────────────────
+      # Runs against the whole backend so style regressions in ANY file are
+      # caught regardless of which files were changed in the PR.
       - name: Run Checkstyle (error-level findings block the PR)
         id: checkstyle
         working-directory: ./backend
@@ -85,7 +91,7 @@ jobs:
           retention-days: 3
           if-no-files-found: ignore
 
-      # ── 6. Install Semgrep (cached) ──────────────────────────────────────
+      # ── 6. Install Semgrep ────────────────────────────────────────────────
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -94,22 +100,23 @@ jobs:
       - name: Install Semgrep
         run: pip install semgrep --quiet
 
-      # ── 7. Semgrep scan (errors only, scoped to changed files) ──────────────
-      # --diff-aware was removed in newer Semgrep versions.  Instead, we pass
-      # only the changed Java files as explicit targets, which achieves the same
-      # "scan only PR-changed lines" behaviour without the unsupported flag.
-      # --error causes a non-zero exit on any ERROR-severity finding.
-      # SARIF output is uploaded for GitHub Code Scanning + used by issue-bot.
-      - name: Run Semgrep (changed files only, error-level findings block the PR)
+      # ── 7. Semgrep scan (errors only) ─────────────────────────────────────
+      # Target selection:
+      #   • If Java files changed → scan only those files (fast, PR-scoped).
+      #   • If no Java files changed (e.g. only workflow/config edits) → scan
+      #     the full backend/src/main/java so the gate is never a no-op.
+      # --error exits non-zero on any ERROR-severity finding.
+      - name: Run Semgrep (error-level findings block the PR)
         id: semgrep
         env:
           SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}   # optional: enables Semgrep Cloud
         run: |
-          CHANGED_FILES="${{ steps.changed.outputs.files }}"
-          if [ -z "$CHANGED_FILES" ]; then
-            echo "No changed Java files — skipping Semgrep."
-            touch semgrep-results.sarif   # create empty file so upload step is happy
-            exit 0
+          if [ "${{ steps.changed.outputs.has_java }}" = "true" ]; then
+            TARGETS="${{ steps.changed.outputs.files }}"
+            echo "Scanning changed Java files: $TARGETS"
+          else
+            TARGETS="backend/src/main/java"
+            echo "No changed Java files — scanning full backend/src/main/java"
           fi
           semgrep \
             --config .semgrep/skyhigh.yml \
@@ -117,7 +124,7 @@ jobs:
             --severity ERROR \
             --sarif \
             --output semgrep-results.sarif \
-            $CHANGED_FILES
+            $TARGETS
         continue-on-error: true   # capture exit code; we decide below
 
       # ── 8. Upload Semgrep SARIF to GitHub Code Scanning ──────────────────
@@ -139,7 +146,7 @@ jobs:
           retention-days: 3
           if-no-files-found: ignore
 
-      # ── 10. Post PR comment on failure ───────────────────────────────────
+      # ── 10. Post PR comment on failure ────────────────────────────────────
       - name: Post failure comment on PR
         if: steps.checkstyle.outcome == 'failure' || steps.semgrep.outcome == 'failure'
         uses: actions/github-script@v7
