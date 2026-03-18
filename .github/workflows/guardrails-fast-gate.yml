@@ -164,17 +164,7 @@ jobs:
               body,
             });
 
-      # ── 11. Debug: list files present for issue creation ─────────────────
-      - name: Debug – list artefact files
-        if: always()
-        run: |
-          echo "=== Semgrep SARIF ==="
-          ls -lh semgrep-results.sarif 2>/dev/null || echo "semgrep-results.sarif NOT FOUND"
-          cat semgrep-results.sarif 2>/dev/null | head -30 || true
-          echo "=== Checkstyle XML ==="
-          ls -lh backend/target/checkstyle-result.xml 2>/dev/null || echo "checkstyle-result.xml NOT FOUND"
-
-      # ── 12. Parse findings into issues.json ──────────────────────────────
+      # ── 11. Parse findings into issues.json ──────────────────────────────
       # Use Python (already installed) to parse SARIF/XML into a simple JSON
       # list so the github-script step has clean, pre-processed input.
       - name: Parse findings into issues.json
@@ -246,7 +236,7 @@ jobs:
           print(f'Total findings to file as issues: {len(findings)}')
           PYEOF
 
-      # ── 13. Create copilot-fixable Issues from issues.json ────────────────
+      # ── 12. Create copilot-fixable Issues from issues.json ────────────────
       - name: Create copilot-fixable Issues from findings
         if: always()
         continue-on-error: true
@@ -290,7 +280,7 @@ jobs:
             }
             console.log('Issue creation complete.');
 
-      # ── 14. Fail the job if either tool found blocking issues ─────────────
+      # ── 13. Fail the job if either tool found blocking issues ─────────────
       - name: Enforce gate result
         if: steps.checkstyle.outcome == 'failure' || steps.semgrep.outcome == 'failure'
         run: |
