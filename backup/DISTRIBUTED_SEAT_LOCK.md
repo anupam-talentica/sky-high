@@ -20,7 +20,7 @@ Environment variable: `REDIS_DISTRIBUTED_SEAT_LOCK_ENABLED=true` to enable.
 
 ## Behavior
 
-- **Lock key:** `lock:seat:{flightId}:{seatNumber}` (per seat).
+- **Lock key:** `lock:seat:{flightId}:{seatNumber}` (per seat). 
 - **Acquire:** `SET key token NX PX ttl` with a unique UUID token.
 - **Release:** Lua script deletes the key only if the value equals the token (only the holder can unlock).
 - **Lock not acquired:** API returns **503 Service Unavailable** with `Retry-After: 3` so clients can retry.

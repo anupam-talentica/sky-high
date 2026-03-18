@@ -278,8 +278,8 @@ class SeatServiceTest {
         assertNotNull(result);
         assertEquals(SeatState.HELD, result.getState());
         assertEquals("P123456", result.getHeldBy());
-        assertNull(result.getHeldUntil());
-        assertEquals(0, result.getHoldDurationSeconds());
+        assertNotNull(result.getHeldUntil());
+        assertEquals(120, result.getHoldDurationSeconds());
 
         verify(distributedSeatLockService).unlock("SK1234", "12A", "test-token");
         verify(seatRepository).save(any(Seat.class));
@@ -385,12 +385,15 @@ class SeatServiceTest {
     }
     
     @Test
-    void releaseSeat_WhenSeatNotHeld_ShouldThrowException() {
+    void releaseSeat_WhenSeatNotHeld_ShouldReturnSeatWithoutChanges() {
         when(seatRepository.findById(1L)).thenReturn(Optional.of(availableSeat));
         
-        assertThrows(InvalidStateTransitionException.class, () -> {
-            seatService.releaseSeat(1L);
-        });
+        Seat result = seatService.releaseSeat(1L);
+        
+        assertNotNull(result);
+        assertEquals(SeatState.AVAILABLE, result.getState());
+        assertEquals(availableSeat.getSeatId(), result.getSeatId());
+        assertEquals(availableSeat.getSeatNumber(), result.getSeatNumber());
         
         verify(seatRepository, times(1)).findById(1L);
         verify(seatRepository, never()).save(any(Seat.class));

@@ -1,5 +1,5 @@
 import { axiosInstance } from './api.client';
-import type { Flight, FlightListResponse } from '../types/flight.types';
+import type { Airline, Airport, Flight, FlightListResponse } from '../types/flight.types';
 
 export const flightService = {
   async getAllFlights(): Promise<FlightListResponse> {
@@ -18,6 +18,21 @@ export const flightService = {
     if (destination) params.append('destination', destination);
     
     const response = await axiosInstance.get<FlightListResponse>(`/flights/search?${params}`);
+    return response.data;
+  },
+
+  async getAirlineByIata(iataCode: string): Promise<Airline> {
+    const response = await axiosInstance.get<Airline>(`/airlines/${iataCode}`);
+    return response.data;
+  },
+
+  async getAirportByIata(iataCode: string): Promise<Airport> {
+    const response = await axiosInstance.get<Airport>(`/airports/${iataCode}`);
+    return response.data;
+  },
+
+  async getAirportWeatherByIata(iataCode: string): Promise<Airport> {
+    const response = await axiosInstance.get<Airport>(`/airports/${iataCode}/weather`);
     return response.data;
   },
 };

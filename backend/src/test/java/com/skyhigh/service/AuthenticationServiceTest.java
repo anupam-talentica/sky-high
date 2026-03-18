@@ -50,7 +50,7 @@ class AuthenticationServiceTest {
         LoginRequest loginRequest = new LoginRequest("john@example.com", "demo123");
         String expectedToken = "jwt.token.here";
 
-        when(userService.validateCredentials(loginRequest.getEmail(), loginRequest.getPassword()))
+        when(userService.findByEmail(loginRequest.getEmail()))
                 .thenReturn(Optional.of(testUser));
         when(jwtTokenProvider.generateToken(testUser.getPassengerId(), testUser.getEmail()))
                 .thenReturn(expectedToken);
@@ -64,7 +64,7 @@ class AuthenticationServiceTest {
         assertEquals("john@example.com", response.getEmail());
         assertEquals("John Doe", response.getName());
 
-        verify(userService).validateCredentials(loginRequest.getEmail(), loginRequest.getPassword());
+        verify(userService).findByEmail(loginRequest.getEmail());
         verify(jwtTokenProvider).generateToken(testUser.getPassengerId(), testUser.getEmail());
     }
 
@@ -72,7 +72,7 @@ class AuthenticationServiceTest {
     void testLogin_InvalidCredentials_ThrowsAuthenticationFailedException() {
         LoginRequest loginRequest = new LoginRequest("john@example.com", "wrongpassword");
 
-        when(userService.validateCredentials(loginRequest.getEmail(), loginRequest.getPassword()))
+        when(userService.findByEmail(loginRequest.getEmail()))
                 .thenReturn(Optional.empty());
 
         AuthenticationFailedException exception = assertThrows(
@@ -80,8 +80,8 @@ class AuthenticationServiceTest {
                 () -> authenticationService.login(loginRequest)
         );
 
-        assertEquals("Invalid email or password", exception.getMessage());
-        verify(userService).validateCredentials(loginRequest.getEmail(), loginRequest.getPassword());
+        assertEquals("Invalid email", exception.getMessage());
+        verify(userService).findByEmail(loginRequest.getEmail());
         verify(jwtTokenProvider, never()).generateToken(anyString(), anyString());
     }
 
@@ -89,7 +89,7 @@ class AuthenticationServiceTest {
     void testLogin_NonExistentUser_ThrowsAuthenticationFailedException() {
         LoginRequest loginRequest = new LoginRequest("nonexistent@example.com", "demo123");
 
-        when(userService.validateCredentials(loginRequest.getEmail(), loginRequest.getPassword()))
+        when(userService.findByEmail(loginRequest.getEmail()))
                 .thenReturn(Optional.empty());
 
         AuthenticationFailedException exception = assertThrows(
@@ -97,6 +97,8 @@ class AuthenticationServiceTest {
                 () -> authenticationService.login(loginRequest)
         );
 
-        assertEquals("Invalid email or password", exception.getMessage());
+        assertEquals("Invalid email", exception.getMessage());
+        verify(userService).findByEmail(loginRequest.getEmail());
+        verify(jwtTokenProvider, never()).generateToken(anyString(), anyString());
     }
 }

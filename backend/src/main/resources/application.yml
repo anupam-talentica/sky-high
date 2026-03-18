@@ -113,6 +113,34 @@ notifications:
   enabled: true
   queueName: notifications:queue
 
+external:
+  aviationstack:
+    api-key: ${AVIATIONSTACK_API_KEY:}
+    base-url: ${EXTERNAL_AVIATIONSTACK_BASE_URL:http://api.aviationstack.com/v1}
+    timeout: 5000
+    enabled: ${AVIATIONSTACK_ENABLED:true}
+  weatherapi:
+    api-key: ${WEATHERAPI_API_KEY:}
+    base-url: ${EXTERNAL_WEATHERAPI_BASE_URL:https://api.weatherapi.com/v1}
+    timeout: 5000
+    enabled: ${WEATHERAPI_ENABLED:true}
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      aviationstack:
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 60000
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+  retry:
+    instances:
+      aviationstack:
+        max-attempts: 3
+        wait-duration: 1000
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+
 app:
   redis:
     seat-map-cache-enabled: ${REDIS_SEAT_MAP_CACHE_ENABLED:true}

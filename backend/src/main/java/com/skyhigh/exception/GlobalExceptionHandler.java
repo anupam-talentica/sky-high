@@ -8,8 +8,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.http.HttpHeaders;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -124,6 +124,27 @@ public class GlobalExceptionHandler {
             HttpServletRequest request) {
         
         logger.error("Seat not found: {}", ex.getMessage());
+
+        ErrorResponse error = ErrorResponse.builder()
+                .status(HttpStatus.NOT_FOUND.value())
+                .error("Not Found")
+                .message(ex.getMessage())
+                .path(request.getRequestURI())
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    /**
+     * Handle flight not found exceptions.
+     */
+    @ExceptionHandler(FlightNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleFlightNotFound(
+            FlightNotFoundException ex,
+            HttpServletRequest request) {
+
+        logger.error("Flight not found: {}", ex.getMessage());
 
         ErrorResponse error = ErrorResponse.builder()
                 .status(HttpStatus.NOT_FOUND.value())
@@ -270,6 +291,27 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handle cases where check-in is not allowed for a given flight.
+     */
+    @ExceptionHandler(CheckInNotAllowedException.class)
+    public ResponseEntity<ErrorResponse> handleCheckInNotAllowed(
+            CheckInNotAllowedException ex,
+            HttpServletRequest request) {
+
+        logger.error("Check-in not allowed: {}", ex.getMessage());
+
+        ErrorResponse error = ErrorResponse.builder()
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("Bad Request")
+                .message(ex.getMessage())
+                .path(request.getRequestURI())
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    /**
      * Handle baggage not found exceptions.
      */
     @ExceptionHandler(BaggageNotFoundException.class)
@@ -360,7 +402,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleNotificationFailed(
             NotificationFailedException ex,
             HttpServletRequest request) {
-        
+
         logger.error("Notification failed: {}", ex.getMessage());
 
         ErrorResponse error = ErrorResponse.builder()
@@ -372,6 +414,27 @@ public class GlobalExceptionHandler {
                 .build();
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+    }
+
+    /**
+     * Handle external service failures (e.g. AviationStack).
+     */
+    @ExceptionHandler(ExternalServiceException.class)
+    public ResponseEntity<ErrorResponse> handleExternalServiceFailure(
+            ExternalServiceException ex,
+            HttpServletRequest request) {
+
+        logger.error("External service failure: {}", ex.getMessage());
+
+        ErrorResponse error = ErrorResponse.builder()
+                .status(HttpStatus.SERVICE_UNAVAILABLE.value())
+                .error("Service Unavailable")
+                .message(ex.getMessage())
+                .path(request.getRequestURI())
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(error);
     }
 
     /**

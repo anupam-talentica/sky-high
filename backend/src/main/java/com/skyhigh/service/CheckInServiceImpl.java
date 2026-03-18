@@ -6,6 +6,7 @@ import com.skyhigh.entity.CheckIn;
 import com.skyhigh.entity.Seat;
 import com.skyhigh.enums.CheckInStatus;
 import com.skyhigh.enums.PaymentStatus;
+import com.skyhigh.exception.CheckInNotAllowedException;
 import com.skyhigh.exception.*;
 import com.skyhigh.repository.CheckInRepository;
 import com.skyhigh.repository.ReservationRepository;
@@ -34,6 +35,7 @@ public class CheckInServiceImpl implements CheckInService {
     private final PaymentService paymentService;
     private final AuditLogService auditLogService;
     private final ReservationRepository reservationRepository;
+    private final FlightStatusService flightStatusService;
 
     public CheckInServiceImpl(
             CheckInRepository checkInRepository,
@@ -41,13 +43,15 @@ public class CheckInServiceImpl implements CheckInService {
             BaggageService baggageService,
             PaymentService paymentService,
             AuditLogService auditLogService,
-            ReservationRepository reservationRepository) {
+            ReservationRepository reservationRepository,
+            FlightStatusService flightStatusService) {
         this.checkInRepository = checkInRepository;
         this.seatService = seatService;
         this.baggageService = baggageService;
         this.paymentService = paymentService;
         this.auditLogService = auditLogService;
         this.reservationRepository = reservationRepository;
+        this.flightStatusService = flightStatusService;
     }
 
     @Override
@@ -64,6 +68,17 @@ public class CheckInServiceImpl implements CheckInService {
         );
         if (!hasReservation) {
             throw new UnauthorizedException("Passenger does not have an active reservation for this flight");
+        }
+
+        // Fetch real-time flight status and validate before proceeding.
+        var flightStatus = flightStatusService.getFlightStatusWithFallback(request.getFlightId());
+
+        if ("cancelled".equalsIgnoreCase(flightStatus.getStatus())) {
+            throw new CheckInNotAllowedException("Flight has been cancelled. Check-in is not allowed.");
+        }
+
+        if ("diverted".equalsIgnoreCase(flightStatus.getStatus())) {
+            throw new CheckInNotAllowedException("Flight has been diverted. Check-in is not allowed.");
         }
 
         // Check if there's an existing active check-in (not cancelled)
@@ -97,6 +112,7 @@ public class CheckInServiceImpl implements CheckInService {
                     .createdAt(checkIn.getCreatedAt())
                     .updatedAt(checkIn.getUpdatedAt())
                     .message("Resuming existing check-in. Continue where you left off.")
+                    .flightStatus(flightStatus)
                     .build();
         }
 
@@ -134,6 +150,7 @@ public class CheckInServiceImpl implements CheckInService {
                 .createdAt(savedCheckIn.getCreatedAt())
                 .updatedAt(savedCheckIn.getUpdatedAt())
                 .message("Check-in initiated successfully. Please select a seat.")
+                .flightStatus(flightStatus)
                 .build();
     }
 

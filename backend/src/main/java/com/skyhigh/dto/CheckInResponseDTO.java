@@ -31,4 +31,5 @@ public class CheckInResponseDTO {
     private List<BaggageResponseDTO> baggageDetails;
     private BigDecimal totalBaggageFee;
     private String boardingPass;
+    private FlightStatusDTO flightStatus;
 }

@@ -1,6 +1,7 @@
 package com.skyhigh.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.skyhigh.dto.notification.NotificationMessage;
 import com.skyhigh.enums.NotificationType;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,7 +34,7 @@ class NotificationServiceImplTest {
         listOperations = (ListOperations<String, String>) mock(ListOperations.class);
         when(redisTemplate.opsForList()).thenReturn(listOperations);
 
-        objectMapper = new ObjectMapper();
+        objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
         notificationService = new NotificationServiceImpl(redisTemplate, objectMapper, "notifications:queue-test");
     }
 
@@ -86,5 +87,3 @@ class NotificationServiceImplTest {
         assertEquals("WAITLIST_SEAT_EXPIRED", metadata.get("template"));
     }
 }
-
-
