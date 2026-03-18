@@ -33,6 +33,7 @@ jobs:
       contents: read
       pull-requests: write        # to post an inline PR comment on failure
       security-events: write      # required for upload-sarif
+      issues: write               # to create copilot-fixable Issues inline
 
     steps:
       # ── 1. Checkout ───────────────────────────────────────────────────────
@@ -163,7 +164,112 @@ jobs:
               body,
             });
 
-      # ── 11. Fail the job if either tool found blocking issues ─────────────
+      # ── 11. Create copilot-fixable Issues from findings ──────────────────
+      # Runs always so that WARNING findings (non-blocking) are also filed.
+      # Issue creation is embedded here rather than in the companion issue-bot
+      # workflow because workflow_run events only fire for workflows that exist
+      # on the default branch — so the bot would never run while this workflow
+      # lives only on a feature branch.
+      - name: Create copilot-fixable Issues from findings
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const { owner, repo } = context.repo;
+            const LABEL    = 'copilot-fixable';
+            const prNumber = context.issue.number || context.payload.pull_request?.number || '?';
+            const shortSha = '${{ github.event.pull_request.head.sha }}'.slice(0, 7);
+
+            async function ensureLabel() {
+              try { await github.rest.issues.getLabel({ owner, repo, name: LABEL }); }
+              catch {
+                await github.rest.issues.createLabel({
+                  owner, repo, name: LABEL,
+                  color: '0075ca',
+                  description: 'Fixable with GitHub Copilot Chat in under a minute',
+                });
+              }
+            }
+
+            async function createIssueIfNew(title, body) {
+              const { data: existing } = await github.rest.issues.listForRepo({
+                owner, repo, state: 'open', labels: LABEL, per_page: 100,
+              });
+              if (existing.find(i => i.title === title)) {
+                console.log(`Skipping duplicate: ${title}`); return;
+              }
+              const { data } = await github.rest.issues.create({ owner, repo, title, body, labels: [LABEL] });
+              console.log(`Created issue #${data.number}: ${title}`);
+            }
+
+            await ensureLabel();
+
+            // ── Checkstyle XML ─────────────────────────────────────────────
+            const checkstyleFile = 'backend/target/checkstyle-result.xml';
+            if (fs.existsSync(checkstyleFile)) {
+              const xml      = fs.readFileSync(checkstyleFile, 'utf8');
+              const fileRe   = /<file name="([^"]+)">([\s\S]*?)<\/file>/g;
+              const errorRe  = /<error\s[^>]*severity="(?:error|warning)"[^>]*>/gi;
+              const attrRe   = /(\w+)="([^"]*)"/g;
+              let fileMatch;
+              while ((fileMatch = fileRe.exec(xml)) !== null) {
+                const filePath    = fileMatch[1];
+                const fileBlock   = fileMatch[2];
+                const shortFile   = filePath.replace(/.*\/src\/main\/java\//, '').replace(/\//g, '.');
+                const simpleClass = shortFile.split('.').pop();
+                const javaFile    = shortFile.replace(/\./g, '/') + '.java';
+                errorRe.lastIndex = 0;
+                let errMatch;
+                while ((errMatch = errorRe.exec(fileBlock)) !== null) {
+                  const attrs = {};
+                  attrRe.lastIndex = 0;
+                  let a;
+                  while ((a = attrRe.exec(errMatch[0])) !== null) attrs[a[1]] = a[2];
+                  const sev     = (attrs.severity || 'warning').toLowerCase();
+                  const line    = attrs.line    || '?';
+                  const message = attrs.message || 'Checkstyle violation';
+                  const source  = (attrs.source || '').split('.').pop();
+                  const badge   = sev === 'error' ? '🔴 ERROR — blocked the PR' : '🟡 WARNING — tech-debt';
+                  const title   = `[Checkstyle] ${source} in ${simpleClass} line ${line}`;
+                  const body    = `## Checkstyle ${sev.toUpperCase()} — \`${source}\`\n\n> ${badge}\n\n**File:** \`${javaFile}\`\n**Line:** ${line}\n**Message:** ${message}\n\n---\n\n### Fix with Copilot Chat\n\n\`\`\`\n@workspace Fix the Checkstyle violation in ${simpleClass} line ${line}: ${message}\n\`\`\`\n\n---\n_Auto-filed by Guardrails Fast Gate from PR #${prNumber} (${shortSha})_`;
+                  await createIssueIfNew(title, body);
+                }
+              }
+            }
+
+            // ── Semgrep SARIF ──────────────────────────────────────────────
+            const semgrepFile = 'semgrep-results.sarif';
+            if (fs.existsSync(semgrepFile)) {
+              const raw = fs.readFileSync(semgrepFile, 'utf8').trim();
+              if (raw && raw !== '{}') {
+                const sarif = JSON.parse(raw);
+                for (const run of (sarif.runs || [])) {
+                  const rules = Object.fromEntries((run.tool?.driver?.rules || []).map(r => [r.id, r]));
+                  for (const result of (run.results || [])) {
+                    const level   = (result.level || 'warning').toLowerCase();
+                    if (level !== 'error' && level !== 'warning') continue;
+                    const ruleId      = result.ruleId || 'unknown-rule';
+                    const rule        = rules[ruleId] || {};
+                    const message     = result.message?.text || rule.shortDescription?.text || ruleId;
+                    const location    = result.locations?.[0]?.physicalLocation;
+                    const filePath    = location?.artifactLocation?.uri || 'unknown-file';
+                    const line        = location?.region?.startLine || '?';
+                    const shortFile   = filePath.replace(/.*\/src\/main\/java\//, '');
+                    const simpleClass = shortFile.replace(/\.java$/, '').split('/').pop();
+                    const badge       = level === 'error' ? '🔴 ERROR — blocked the PR' : '🟡 WARNING — tech-debt';
+                    const copilotPrompt = rule.properties?.copilot_prompt
+                      || `@workspace Fix the Semgrep finding '${ruleId}' in ${simpleClass} line ${line}`;
+                    const title = `[Semgrep] ${ruleId} in ${simpleClass} line ${line}`;
+                    const body  = `## Semgrep ${level.toUpperCase()} — \`${ruleId}\`\n\n> ${badge}\n\n**File:** \`${shortFile}\`\n**Line:** ${line}\n**Message:** ${message}\n\n---\n\n### Fix with Copilot Chat\n\n\`\`\`\n${copilotPrompt}\n\`\`\`\n\n---\n_Auto-filed by Guardrails Fast Gate from PR #${prNumber} (${shortSha})_`;
+                    await createIssueIfNew(title, body);
+                  }
+                }
+              }
+            }
+            console.log('Issue creation complete.');
+
+      # ── 12. Fail the job if either tool found blocking issues ─────────────
       - name: Enforce gate result
         if: steps.checkstyle.outcome == 'failure' || steps.semgrep.outcome == 'failure'
         run: |
