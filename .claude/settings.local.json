@@ -4,7 +4,8 @@
       "Bash(mvn clean:*)",
       "Bash(mvn dependency:tree -Dincludes=org.projectlombok)",
       "Bash(java -version)",
-      "Bash(javac -version)"
+      "Bash(javac -version)",
+      "Bash(grep -n \"actions/checkout\\\\|setup-java\\\\|setup-node\\\\|docker/login\\\\|docker/setup-buildx\" /Users/anupamg/Desktop/Code/Assignment/Sky-High/.github/workflows/*.yml)"
     ]
   }
 }

@@ -48,7 +48,7 @@ jobs:
         run: |
           BASE=${{ github.event.pull_request.base.sha }}
           HEAD=${{ github.event.pull_request.head.sha }}
-          FILES=$(git diff --name-only "$BASE" "$HEAD" -- 'backend/src/**/*.java' | tr '\n' ' ')
+          FILES=$(git diff --name-only "$BASE" "$HEAD" | grep '\.java$' | tr '\n' ' ')
           echo "files=$FILES" >> "$GITHUB_OUTPUT"
           echo "Changed Java files: $FILES"
 
@@ -85,7 +85,13 @@ jobs:
           retention-days: 3
           if-no-files-found: ignore
 
-      # ── 6. Install Semgrep ────────────────────────────────────────────────
+      # ── 6. Install Semgrep (cached) ──────────────────────────────────────
+      - name: Set up Python with pip cache
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
       - name: Install Semgrep
         run: pip install semgrep --quiet
 
