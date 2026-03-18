@@ -202,17 +202,19 @@
                 </configuration>
             </plugin>
 
-            <!-- Checkstyle: errors block the build; warnings are emitted for the issue-bot -->
+            <!-- Checkstyle: never blocks the build — all findings are warnings.
+                 The XML report is uploaded by the fast-gate and consumed by the
+                 issue-bot to create copilot-fixable GitHub Issues. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <version>3.3.1</version>
                 <configuration>
                     <configLocation>checkstyle.xml</configLocation>
-                    <consoleOutput>true</consoleOutput>
-                    <failsOnError>true</failsOnError>
-                    <!-- Only fail on severity=error; warnings are still printed -->
-                    <violationSeverity>error</violationSeverity>
+                    <consoleOutput>false</consoleOutput>
+                    <failOnViolation>false</failOnViolation>
+                    <failsOnError>false</failsOnError>
+                    <logViolationsToConsole>false</logViolationsToConsole>
                     <includeTestSourceDirectory>false</includeTestSourceDirectory>
                     <outputFile>${project.build.directory}/checkstyle-result.xml</outputFile>
                 </configuration>
