@@ -41,10 +41,9 @@ jobs:
         with:
           fetch-depth: 0          # needed for accurate diff against base
 
-      # ── 2. Identify changed Java files ────────────────────────────────────
-      # Produces two outputs:
-      #   files      – space-separated list of changed .java paths (may be empty)
-      #   has_java   – "true" / "false" for conditional steps
+      # ── 2. Log changed Java files (informational only) ───────────────────
+      # Semgrep always scans the full source tree, so this is for run logging
+      # only — it does not gate whether Semgrep runs.
       - name: Compute changed Java files
         id: changed
         run: |
@@ -52,13 +51,7 @@ jobs:
           HEAD=${{ github.event.pull_request.head.sha }}
           FILES=$(git diff --name-only "$BASE" "$HEAD" | grep '\.java$' | tr '\n' ' ')
           echo "files=$FILES" >> "$GITHUB_OUTPUT"
-          if [ -n "$FILES" ]; then
-            echo "has_java=true"  >> "$GITHUB_OUTPUT"
-            echo "Changed Java files: $FILES"
-          else
-            echo "has_java=false" >> "$GITHUB_OUTPUT"
-            echo "No changed Java files — Semgrep will scan full backend/src/main/java."
-          fi
+          echo "Changed Java files: ${FILES:-<none>}"
 
       # ── 3. Set up Java (cached) ───────────────────────────────────────────
       - name: Set up JDK 17
@@ -100,31 +93,23 @@ jobs:
       - name: Install Semgrep
         run: pip install semgrep --quiet
 
-      # ── 7. Semgrep scan (errors only) ─────────────────────────────────────
-      # Target selection:
-      #   • If Java files changed → scan only those files (fast, PR-scoped).
-      #   • If no Java files changed (e.g. only workflow/config edits) → scan
-      #     the full backend/src/main/java so the gate is never a no-op.
+      # ── 7. Semgrep full scan (errors only) ───────────────────────────────
+      # Always scans the full backend/src/main/java so that pre-existing ERROR
+      # findings in unchanged files are caught on every PR — not just when the
+      # file containing the issue happens to be in the diff.
       # --error exits non-zero on any ERROR-severity finding.
       - name: Run Semgrep (error-level findings block the PR)
         id: semgrep
         env:
           SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}   # optional: enables Semgrep Cloud
         run: |
-          if [ "${{ steps.changed.outputs.has_java }}" = "true" ]; then
-            TARGETS="${{ steps.changed.outputs.files }}"
-            echo "Scanning changed Java files: $TARGETS"
-          else
-            TARGETS="backend/src/main/java"
-            echo "No changed Java files — scanning full backend/src/main/java"
-          fi
           semgrep \
             --config .semgrep/skyhigh.yml \
             --error \
             --severity ERROR \
             --sarif \
             --output semgrep-results.sarif \
-            $TARGETS
+            backend/src/main/java
         continue-on-error: true   # capture exit code; we decide below
 
       # ── 8. Upload Semgrep SARIF to GitHub Code Scanning ──────────────────
