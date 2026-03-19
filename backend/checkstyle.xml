@@ -1,0 +1,128 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+    "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+    "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<!--
+  Sky-High Checkstyle Configuration
+  All rules are severity=warning — Checkstyle never blocks the build.
+  The fast-gate workflow (guardrails-fast-gate.yml) uploads the XML report
+  and the issue-bot (guardrails-issue-bot.yml) converts every finding into
+  a GitHub Issue labelled copilot-fixable.
+-->
+<module name="Checker">
+    <property name="severity" value="warning"/>
+    <property name="fileExtensions" value="java"/>
+
+    <!-- ===== FILE-LEVEL CHECKS ===== -->
+
+    <module name="FileTabCharacter"/>
+
+    <module name="RegexpSingleline">
+        <property name="format" value="\s+$"/>
+        <property name="message" value="Line has trailing whitespace."/>
+    </module>
+
+    <module name="NewlineAtEndOfFile"/>
+
+    <module name="LineLength">
+        <property name="max" value="120"/>
+        <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://"/>
+    </module>
+
+    <module name="TreeWalker">
+
+        <!-- ===== NAMING CONVENTIONS ===== -->
+
+        <module name="TypeName"/>
+
+        <module name="MethodName"/>
+
+        <!-- Allow 'log' and 'logger' — idiomatic SLF4J static final names -->
+        <module name="ConstantName">
+            <property name="format" value="^log(ger)?$|^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$"/>
+        </module>
+
+        <module name="LocalVariableName"/>
+
+        <module name="MemberName"/>
+
+        <module name="ParameterName"/>
+
+        <!-- ===== IMPORTS ===== -->
+
+        <module name="AvoidStarImport"/>
+
+        <module name="UnusedImports"/>
+
+        <module name="RedundantImport"/>
+
+        <!-- ===== CODING STYLE ===== -->
+
+        <module name="NeedBraces"/>
+
+        <module name="LeftCurly"/>
+
+        <module name="RightCurly"/>
+
+        <module name="WhitespaceAround">
+            <property name="tokens" value="ASSIGN, BAND, BAND_ASSIGN, BOR, BOR_ASSIGN, BSR, BSR_ASSIGN, BXOR, BXOR_ASSIGN, COLON, DIV, DIV_ASSIGN, DO_WHILE, EQUAL, GE, GT, LAND, LCURLY, LE, LITERAL_CATCH, LITERAL_DO, LITERAL_ELSE, LITERAL_FINALLY, LITERAL_FOR, LITERAL_IF, LITERAL_RETURN, LITERAL_SWITCH, LITERAL_SYNCHRONIZED, LITERAL_TRY, LITERAL_WHILE, LOR, LT, MINUS, MINUS_ASSIGN, MOD, MOD_ASSIGN, NOT_EQUAL, PLUS, PLUS_ASSIGN, QUESTION, RCURLY, SL, SLIST, SL_ASSIGN, SR, SR_ASSIGN, STAR, STAR_ASSIGN, LITERAL_ASSERT, TYPE_EXTENSION_AND"/>
+        </module>
+
+        <module name="EmptyBlock"/>
+
+        <module name="EmptyCatchBlock">
+            <property name="exceptionVariableName" value="expected|ignore"/>
+        </module>
+
+        <module name="MagicNumber">
+            <property name="ignoreNumbers" value="-1, 0, 1, 2, 100"/>
+            <property name="ignoreAnnotation" value="true"/>
+            <property name="ignoreHashCodeMethod" value="true"/>
+        </module>
+
+        <!-- ===== DESIGN & COMPLEXITY ===== -->
+
+        <module name="CyclomaticComplexity">
+            <property name="max" value="15"/>
+        </module>
+
+        <module name="MethodLength">
+            <property name="max" value="100"/>
+        </module>
+
+        <module name="ParameterNumber">
+            <property name="max" value="7"/>
+        </module>
+
+        <!-- ===== JAVADOC ===== -->
+
+        <module name="MissingJavadocMethod">
+            <property name="scope" value="public"/>
+            <property name="minLineCount" value="3"/>
+            <property name="allowMissingPropertyJavadoc" value="true"/>
+            <property name="tokens" value="METHOD_DEF, ANNOTATION_FIELD_DEF"/>
+        </module>
+
+        <!-- ===== SECURITY SMELLS ===== -->
+
+        <module name="Regexp">
+            <property name="id" value="NoSystemOut"/>
+            <property name="format" value="System\.(out|err)\.print"/>
+            <property name="message" value="Use SLF4J logger instead of System.out/err."/>
+            <property name="illegalPattern" value="true"/>
+        </module>
+
+        <module name="Regexp">
+            <property name="id" value="NoPrintStackTrace"/>
+            <property name="format" value="\.printStackTrace\(\)"/>
+            <property name="message" value="Use logger.error() instead of printStackTrace()."/>
+            <property name="illegalPattern" value="true"/>
+        </module>
+
+        <module name="TodoComment">
+            <property name="format" value="(TODO|FIXME|HACK|XXX)"/>
+        </module>
+
+    </module>
+</module>

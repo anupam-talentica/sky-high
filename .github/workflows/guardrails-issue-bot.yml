@@ -1,0 +1,287 @@
+name: "Guardrails – Issue Creation Bot"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stage 2 of the two-stage guardrails pipeline (Section 14).
+#
+# Goal  : convert findings that blocked (or warned in) the PR into GitHub
+#         Issues labelled `copilot-fixable` with a pre-filled Copilot Chat
+#         prompt, so that any developer can fix it in under a minute.
+#
+#         ERROR findings   → these blocked the PR; Issues are filed to track them.
+#         WARNING findings → non-blocking; Issues are filed as tech-debt items.
+#
+# Trigger: runs AFTER the fast-gate job completes (workflow_run event), so it
+#          never adds latency to the PR feedback loop.
+#
+# Tools : Checkstyle (from XML artefact) + Semgrep (from SARIF artefact)
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  workflow_run:
+    workflows: ["Guardrails – Fast Gate"]
+    types: [completed]
+
+jobs:
+  issue-bot:
+    name: "Issue Bot (Copilot-Fixable Errors)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    # Only run when the fast-gate was triggered by a pull_request event.
+    # Run regardless of conclusion so warnings also get filed on passing PRs.
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion != 'skipped' &&
+      github.event.workflow_run.conclusion != 'cancelled'
+
+    permissions:
+      contents: read
+      issues: write               # create / update Issues
+      actions: read               # download artefacts from the triggering run
+      pull-requests: read         # resolve PR number from the triggering run
+
+    steps:
+      # ── 1. Checkout ───────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 2. Resolve the PR number from the triggering workflow run ─────────
+      # workflow_run.pull_requests[] is empty for fork PRs and is unreliable
+      # in general. The safe approach is to query the API for open PRs whose
+      # head SHA matches the workflow run's head SHA.
+      - name: Resolve PR number
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const headSha = '${{ github.event.workflow_run.head_sha }}';
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              state: 'open',
+              per_page: 10,
+            });
+            const pr = prs.find(p => p.head.sha === headSha);
+            if (pr) {
+              core.setOutput('number', String(pr.number));
+              console.log(`Resolved PR #${pr.number} for SHA ${headSha}`);
+            } else {
+              core.setOutput('number', '');
+              console.log(`No open PR found for SHA ${headSha} — issues will be filed without PR reference.`);
+            }
+
+      # ── 3. Download artefacts produced by the fast-gate run ───────────────
+      - name: Download Checkstyle artefact
+        uses: actions/download-artifact@v4
+        with:
+          name: checkstyle-result
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artefacts/checkstyle
+        continue-on-error: true   # absent = no violations → skip gracefully
+
+      - name: Download Semgrep SARIF artefact
+        uses: actions/download-artifact@v4
+        with:
+          name: semgrep-results
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artefacts/semgrep
+        continue-on-error: true
+
+      # ── 4. Parse findings and create GitHub Issues ────────────────────────
+      - name: Parse findings and create copilot-fixable Issues
+        uses: actions/github-script@v7
+        env:
+          PR_NUMBER:   ${{ steps.pr.outputs.number }}
+          PR_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        with:
+          script: |
+            const fs = require('fs');
+
+            // ── helpers ────────────────────────────────────────────────────
+            const LABEL      = 'copilot-fixable';
+            const prNumber   = process.env.PR_NUMBER   || '(unknown)';
+            const prHeadSha  = process.env.PR_HEAD_SHA || '';
+            const shortSha   = prHeadSha.slice(0, 7);
+            const { owner, repo } = context.repo;
+
+            // Ensure the label exists (idempotent)
+            async function ensureLabel() {
+              try {
+                await github.rest.issues.getLabel({ owner, repo, name: LABEL });
+              } catch {
+                await github.rest.issues.createLabel({
+                  owner, repo,
+                  name:        LABEL,
+                  color:       '0075ca',
+                  description: 'Fixable with GitHub Copilot Chat in under a minute',
+                });
+              }
+            }
+
+            // Create an Issue only if an identical open one doesn't already exist
+            async function createIssueIfNew(title, body, extraLabels = []) {
+              const existing = await github.rest.issues.listForRepo({
+                owner, repo,
+                state:    'open',
+                labels:   LABEL,
+                per_page: 100,
+              });
+              if (existing.data.find(i => i.title === title)) {
+                console.log(`Skipping duplicate: ${title}`);
+                return;
+              }
+              const { data } = await github.rest.issues.create({
+                owner, repo,
+                title,
+                body,
+                labels: [LABEL, ...extraLabels],
+              });
+              console.log(`Created issue #${data.number}: ${title}`);
+            }
+
+            // Build the PR reference footer
+            const prRef = prNumber !== '(unknown)'
+              ? `PR #${prNumber} (${shortSha})`
+              : `commit ${shortSha}`;
+
+            await ensureLabel();
+
+            // ── Parse Checkstyle XML ───────────────────────────────────────
+            // Files issues for BOTH error and warning severity findings.
+            // ERROR findings blocked the PR; WARNING findings are tech-debt.
+            const checkstyleFile = 'artefacts/checkstyle/checkstyle-result.xml';
+            if (fs.existsSync(checkstyleFile)) {
+              const xml = fs.readFileSync(checkstyleFile, 'utf8');
+
+              const fileRe  = /<file name="([^"]+)">([\s\S]*?)<\/file>/g;
+              // Only ERROR severity findings create issues
+              const errorRe = /<error\s[^>]*severity="error"[^>]*>/gi;
+              const attrRe  = /(\w+)="([^"]*)"/g;
+
+              let fileMatch;
+              while ((fileMatch = fileRe.exec(xml)) !== null) {
+                const filePath  = fileMatch[1];
+                const fileBlock = fileMatch[2];
+                const shortFile = filePath.replace(/.*\/src\/main\/java\//, '').replace(/\//g, '.');
+
+                let errMatch;
+                errorRe.lastIndex = 0;
+                while ((errMatch = errorRe.exec(fileBlock)) !== null) {
+                  const attrs = {};
+                  let a;
+                  attrRe.lastIndex = 0;
+                  while ((a = attrRe.exec(errMatch[0])) !== null) attrs[a[1]] = a[2];
+
+                  const severity  = (attrs.severity || 'warning').toLowerCase();
+                  const line      = attrs.line    || '?';
+                  const message   = attrs.message || 'Checkstyle violation';
+                  const source    = (attrs.source || '').split('.').pop();
+                  const javaFile  = shortFile.replace(/\./g, '/') + '.java';
+                  const simpleClass = shortFile.split('.').pop();
+                  const severityLabel = severity === 'error' ? '🔴 ERROR' : '🟡 WARNING';
+
+                  const title = `[Checkstyle] ${source} in ${simpleClass} line ${line}`;
+                  const body  = `## Checkstyle ${severity.toUpperCase()} — \`${source}\`
+
+            > ${severityLabel} ${severity === 'error' ? '— this finding **blocked the PR**' : '— non-blocking, tracked as tech-debt'}
+
+            **File:** \`${javaFile}\`
+            **Line:** ${line}
+            **Message:** ${message}
+
+            ---
+
+            ### Fix with Copilot Chat
+
+            Open this file in VS Code, then paste the prompt below into Copilot Chat:
+
+            \`\`\`
+            @workspace Fix the Checkstyle violation in ${simpleClass} line ${line}: ${message}
+            \`\`\`
+
+            ---
+
+            _Auto-filed by the Sky-High Guardrails Issue Bot from ${prRef}_`;
+
+                  await createIssueIfNew(title, body);
+                }
+              }
+              console.log('Checkstyle parsing complete.');
+            } else {
+              console.log('No Checkstyle artefact found — skipping.');
+            }
+
+            // ── Parse Semgrep SARIF ────────────────────────────────────────
+            // Files issues for BOTH error and warning level findings.
+            // In SARIF, Semgrep maps severity like:
+            //   ERROR   → level: "error"
+            //   WARNING → level: "warning"  (or omitted, defaults to "warning")
+            const semgrepFile = 'artefacts/semgrep/semgrep-results.sarif';
+            if (fs.existsSync(semgrepFile)) {
+              const raw = fs.readFileSync(semgrepFile, 'utf8').trim();
+              if (!raw || raw === '{}' || raw === '') {
+                console.log('Semgrep SARIF is empty — no findings to file.');
+              } else {
+                const sarif = JSON.parse(raw);
+
+                for (const run of (sarif.runs || [])) {
+                  const rules = Object.fromEntries(
+                    (run.tool?.driver?.rules || []).map(r => [r.id, r])
+                  );
+
+                  for (const result of (run.results || [])) {
+                    const ruleId = result.ruleId || 'unknown-rule';
+                    const rule   = rules[ruleId] || {};
+                    // result.level is often absent — fall back to rule defaultConfiguration
+                    const level  = (
+                      result.level ||
+                      rule.defaultConfiguration?.level ||
+                      'warning'
+                    ).toLowerCase();
+                    if (level !== 'error') continue;
+                    const message   = result.message?.text || rule.shortDescription?.text || ruleId;
+                    const location  = result.locations?.[0]?.physicalLocation;
+                    const filePath  = location?.artifactLocation?.uri || 'unknown-file';
+                    const line      = location?.region?.startLine || '?';
+                    const shortFile = filePath.replace(/.*\/src\/main\/java\//, '');
+                    const simpleClass = shortFile.replace(/\.java$/, '').split('/').pop();
+                    const severityLabel = level === 'error' ? '🔴 ERROR' : '🟡 WARNING';
+
+                    const copilotPrompt = rule.properties?.['copilot_prompt']
+                      || `@workspace Fix the Semgrep finding '${ruleId}' in ${simpleClass} line ${line}`;
+
+                    const title = `[Semgrep] ${ruleId} in ${simpleClass} line ${line}`;
+                    const body  = `## Semgrep ${level.toUpperCase()} — \`${ruleId}\`
+
+            > ${severityLabel} ${level === 'error' ? '— this finding **blocked the PR**' : '— non-blocking, tracked as tech-debt'}
+
+            **File:** \`${shortFile}\`
+            **Line:** ${line}
+            **Message:** ${message}
+
+            ---
+
+            ### Fix with Copilot Chat
+
+            Open this file in VS Code, then paste the prompt below into Copilot Chat:
+
+            \`\`\`
+            ${copilotPrompt}
+            \`\`\`
+
+            ---
+
+            _Auto-filed by the Sky-High Guardrails Issue Bot from ${prRef}_`;
+
+                    await createIssueIfNew(title, body);
+                  }
+                }
+              }
+              console.log('Semgrep SARIF parsing complete.');
+            } else {
+              console.log('No Semgrep SARIF artefact found — skipping.');
+            }
+
+            console.log('Issue bot finished.');
